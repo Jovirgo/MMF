@@ -51,6 +51,12 @@ protected:
     
 public:
     void openTheCard(GameCard* card);
+
+	// tool 1:
+	void showRevSideHintWithDuration(float duration);
+
+	// tool 2:
+	void autoMatchCards(int matchTimes);
     
 protected:
     bool isMatch(GameCard const* lCard,
@@ -67,20 +73,10 @@ protected:
     CC_SYNTHESIZE_RETAIN(GameCard*, _1stCard, 1stCard);
     CC_SYNTHESIZE_RETAIN(GameCard*, _2ndCard, 2ndCard);
     
-    CC_PROPERTY(bool, _isFeverModeEnabled, FeverModeEnabled);
-    
-public:
-    void activateTheTool(GameTool* tool);
-    
-protected:
-    void adjustForActivateTheCoin(GameTool* coin);
-    void adjustForActivateTheMult(GameTool* mult);
-    void adjustForActivateTheTime(GameTool* time);
+    CC_PROPERTY(bool,	_isFeverModeEnabled,	FeverModeEnabled);
+	CC_PROPERTY(bool,	_isTouchEnabled,		TouchEnabled);
 
 protected:
-	// menmenxiao
-	void addNewBlocks();
-    
     GameBlocksManager(void);
     
     virtual ~GameBlocksManager(void);

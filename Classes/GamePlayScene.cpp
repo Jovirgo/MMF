@@ -1,4 +1,4 @@
-//
+﻿//
 //  GamePlayScene.cpp
 //  NewFlipop
 //
@@ -8,10 +8,12 @@
 
 #include "GamePlayScene.h"
 #include "GameResources.h"  // Maybe include to a head file
-#include "cocostudio/ActionTimeline/CSLoader.h"
+#include "cocostudio/Cocostudio.h"
 #include "ui/CocosGUI.h"
 #include "GameData.h"
 #include "GameConstant.h"
+#include "ResultScene.h"
+#include "GameBlocksCountManager.h"
 
 USING_NS_CC;
 
@@ -26,6 +28,14 @@ bool GamePlayScene::init(void)
 {
     bool bRet = Scene::init();
     
+
+	/*
+	* reset data
+	*/
+	GameData::getInstance()->resetGameData();
+	GameBlocksCountManager::getInstance()->resetBlocksCount();
+
+
     _rootNode = CSLoader::createNode("GamePlay/GamePlay.csb");
     _rootNode->retain();
     addChild(_rootNode);
@@ -33,15 +43,18 @@ bool GamePlayScene::init(void)
     Size winSize = Director::getInstance()->getWinSize();
     _rootNode->setPosition( Vec2(winSize.width /2,
                                  winSize.height/2));
-    
-    // ...
 
     _blocksManager = GameBlocksManager::create(4, 4, 3);
     _blocksManager->retain();
     _blocksManager->setPositionY(-30.f);
     _rootNode->addChild(_blocksManager);
+
+	initMenu();
     
-    // fever bar
+
+    /*
+	* init fever bar and add fever event listener
+	*/
     auto feverBarBg = _rootNode->getChildByName("FeverBar");
     
     _feverBar = ProgressTimer::create(Sprite::create("GamePlay/Gameplay_Feverfull.png"));
@@ -53,21 +66,13 @@ bool GamePlayScene::init(void)
     _feverBar->setMidpoint(Vec2::ZERO);
     _rootNode->addChild(_feverBar, feverBarBg->getZOrder()+1);
     
+	_eventDispatcher->addCustomEventListener("FeverDecreaseEvent", CC_CALLBACK_1(GamePlayScene::adjustFeverDecreaseEvent, this));
+	_eventDispatcher->addCustomEventListener("FeverIncreaseEvent", CC_CALLBACK_1(GamePlayScene::adjustFeverIncreaseEvent, this));
     
-    auto feverListener_1 = EventListenerCustom::create("FeverDecreaseEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustFeverDecreaseEvent, this));
-    auto feverListener_2 = EventListenerCustom::create("FeverIncreaseEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustFeverIncreaseEvent, this));
-    /*auto feverListener_3 = EventListenerCustom::create("FeverDisabledEvent", [=](EventCustom* event){
-        _blocksManager->setFeverModeEnabled(false);
-    });*/
-    
-    _eventDispatcher->addEventListenerWithFixedPriority(feverListener_1, 1);
-    _eventDispatcher->addEventListenerWithFixedPriority(feverListener_2, 1);
-    // _eventDispatcher->addEventListenerWithFixedPriority(feverListener_3, 1);
-    
-    
-    // score text
+
+    /*
+	* init score text and add score event listener
+	*/
     auto oldScoreText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtScore"));
     oldScoreText->removeFromParent();
     
@@ -80,59 +85,96 @@ bool GamePlayScene::init(void)
     newScoreText->setCountingDuration(0.2f);
     _rootNode->addChild(newScoreText, oldScoreText->getZOrder(), oldScoreText->getName());
     
-    auto scoreListener_1 = EventListenerCustom::create("PutScoreEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustPutScoreEvent, this));
-    auto scoreListener_2 = EventListenerCustom::create("GetScoreEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustGetScoreEvent, this));
+	_eventDispatcher->addCustomEventListener("PutScoreEvent", CC_CALLBACK_1(GamePlayScene::adjustPutScoreEvent, this));
+	_eventDispatcher->addCustomEventListener("GetScoreEvent", CC_CALLBACK_1(GamePlayScene::adjustGetScoreEvent, this));
     
-    _eventDispatcher->addEventListenerWithFixedPriority(scoreListener_1, 1);
-    _eventDispatcher->addEventListenerWithFixedPriority(scoreListener_2, 1);
-    
-    
-    // timer bar
-    schedule( schedule_selector(GamePlayScene::updateForPlayTimer));
-    
+
+	/*
+	* init timer bar and add timer event listener
+	*/
     _timerText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtTimer"));
     _timerText->retain();
+
+    char szLabel[5];
+    sprintf(szLabel, "%d", int(_playTimer + 0.99f));
+    _timerText->setString(szLabel);
     
     auto timerBarBg = _rootNode->getChildByName("TimerBar");
-    
     _timerBar = ProgressTimer::create(Sprite::create("GamePlay/Gameplay_TimeFull.png"));
     _timerBar->retain();
     _timerBar->setPosition(timerBarBg->getPosition());
     _timerBar->setReverseDirection(true);
     _timerBar->setPercentage(100.f);
     _rootNode->addChild(_timerBar, timerBarBg->getZOrder()+1);
-    
-    auto timerListener_1 = EventListenerCustom::create("PutTimerEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustPutTimerEvent, this));
-    auto timerListener_2 = EventListenerCustom::create("GetTimerEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustGetTimerEvent, this));
-    
-    _eventDispatcher->addEventListenerWithFixedPriority(timerListener_1, 1);
-    _eventDispatcher->addEventListenerWithFixedPriority(timerListener_2, 1);
 
 	_eventDispatcher->addCustomEventListener("PauseTimerEvent", [this](Event*){ 
 		_isTimerPause = true;
 		_isFeverPause = true;
+		setTouchEnabled(false);
 	});
 
 	_eventDispatcher->addCustomEventListener("ResumeTimerEvent", [this](Event*){
 		_isTimerPause = false;
 		_isFeverPause = false;
+		setTouchEnabled(true);
 	});
-    
-    // coins text
-    
-    auto coinsListener_1 = EventListenerCustom::create("PutCoinsEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustPutCoinsEvent, this));
-    auto coinsListener_2 = EventListenerCustom::create("GetCoinsEvent",
-                                                       CC_CALLBACK_1(GamePlayScene::adjustGetCoinsEvent, this));
-    
-    _eventDispatcher->addEventListenerWithFixedPriority(coinsListener_1, 1);
-    _eventDispatcher->addEventListenerWithFixedPriority(coinsListener_2, 1);
+
+    schedule( schedule_selector(GamePlayScene::updateForPlayTimer));
+
+
+	/*
+	* start animation
+	*/
+	auto gameTimeLine = CSLoader::createTimeline("GamePlay/GamePlay.csb");
+	gameTimeLine->play("ReadyAnimation", false);
+	gameTimeLine->setLastFrameCallFunc([this](){ schedule( schedule_selector(GamePlayScene::updateForPlayTimer)); });
+
+	_rootNode->runAction(gameTimeLine);
+
+	setTouchEnabled(true);
     
     return bRet;
+}
+
+void GamePlayScene::initMenu()
+{
+	auto menuNode = dynamic_cast<Node*>(_rootNode->getChildByName("Node"));
+
+	auto button1 = dynamic_cast<ui::Button*>(menuNode->getChildByName("Btn1"));
+	button1->addClickEventListener([this](Ref*){
+		if (!_isTouchEnabled)
+			return;
+		
+		enableFeverMode();
+	});
+
+	auto button2 = dynamic_cast<ui::Button*>(menuNode->getChildByName("Btn2"));
+	button2->addClickEventListener([this](Ref*){
+		if (!_isTouchEnabled)
+			return;
+
+		_blocksManager->autoMatchCards(3);
+	});
+
+	auto button3 = dynamic_cast<ui::Button*>(menuNode->getChildByName("Btn3"));
+	button3->addClickEventListener([this](Ref*){
+		if (!_isTouchEnabled)
+			return;
+
+		_playTimer += 5.f;
+		if (_playTimer > PLAY_TIME)
+		{
+			_playTimer = PLAY_TIME;
+		}
+	});
+
+	auto button4 = dynamic_cast<ui::Button*>(menuNode->getChildByName("Btn4"));
+	button4->addClickEventListener([this](Ref*){
+		if (!_isTouchEnabled)
+			return;
+
+		_blocksManager->showRevSideHintWithDuration(0.36f);
+	});
 }
 
 void GamePlayScene::adjustFeverIncreaseEvent(EventCustom *event)
@@ -141,11 +183,7 @@ void GamePlayScene::adjustFeverIncreaseEvent(EventCustom *event)
     {
 		_feverStep = 0;
 
-        _feverBar->setPercentage(100.f);
-
-        _blocksManager->setFeverModeEnabled(true);
-
-		schedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+		enableFeverMode();
     }
     else
     {
@@ -170,15 +208,15 @@ void GamePlayScene::adjustGetScoreEvent(EventCustom *event)
     GameData* instance = GameData::getInstance();
     instance->increaseScore(scoreDelta);
     
-//    char szScore[10];
-//    snprintf(szScore, 10, "%d", instance->getScore());
-//    _scoreText->setString(szScore);
     auto scoreText = dynamic_cast<NumberCountingLabel*>(_rootNode->getChildByName("TxtScore"));
     scoreText->setGoalNumber( instance->getScore());
 }
 
 void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
 {
+	/*
+	* get user data and (score, scoreColor, positionX, positionY)
+	*/
     char * buf = static_cast<char*>(event->getUserData());
     
     int scoreDelta = 0;
@@ -188,6 +226,9 @@ void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
     
     sscanf(buf, "%d,%d,%f,%f", &scoreDelta, &scoreColor, &wPosX, &wPosY);
     
+	/*
+	* create a animation of the score will be get
+	*/
     char szScoreDelta[10];
     snprintf(szScoreDelta, 10, "%d", scoreDelta);
     
@@ -231,87 +272,6 @@ void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
                                                  nullptr));
 }
 
-void GamePlayScene::adjustPutCoinsEvent(EventCustom* event)
-{
-    char* szData = static_cast<char*>(event->getUserData());
-    
-    float wPosX = 0.f;
-    float wPosY = 0.f;
-    sscanf(szData, "%f,%f", &wPosX, &wPosY);
-    
-    auto sprite = Sprite::createWithSpriteFrameName("CoinAnimation_000");
-    _rootNode->addChild(sprite);
-    
-    auto CallFuncOfActionFinish = CallFunc::create([=](void){
-        
-        EventCustom event("GetCoinsEvent");
-        _eventDispatcher->dispatchEvent(&event);
-    });
-    
-    Vec2 beginPos = _rootNode->convertToNodeSpace(Vec2(wPosX, wPosY));
-    
-    auto coinsText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtCoins"));
-    Vec2 endPos = coinsText->getPosition() - (coinsText->getContentSize()*0.5f);
-    
-    sprite->setPosition(beginPos);
-    sprite->runAction( Sequence::create(ScaleTo::create(0.1f, 0.5f),
-                                        MoveTo::create(beginPos.getDistance(endPos)/1500.f, endPos),
-                                        RemoveSelf::create(),
-                                        CallFuncOfActionFinish,
-                                        nullptr));
-}
-
-void GamePlayScene::adjustGetCoinsEvent(EventCustom* event)
-{
-    GameData* instance =  GameData::getInstance();
-    instance->increaseCoins(1);
-    
-    char szCoins[10];
-    snprintf(szCoins, 10, "%d", instance->getCoins());
-    
-    auto coinsText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtCoins"));
-    coinsText->setString(szCoins);
-}
-
-void GamePlayScene::adjustPutTimerEvent(EventCustom* event)
-{
-     ++_activeTimerCount;
-    
-    char* szData = static_cast<char*>(event->getUserData());
-    
-    float wPosX = 0.f;
-    float wPosY = 0.f;
-    sscanf(szData, "%f,%f", &wPosX, &wPosY);
-    
-    auto sprite = Sprite::create("GameBlock/Tool_time0.png");
-    _rootNode->addChild(sprite);
-    
-    auto CallFuncOfActionFinish = CallFunc::create([=](void){
-        
-        EventCustom event("GetTimerEvent");
-        _eventDispatcher->dispatchEvent(&event);
-    });
-    
-    Vec2 beginPos = _rootNode->convertToNodeSpace(Vec2(wPosX, wPosY));
-    
-    auto coinsText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtTimer"));
-    Vec2 endPos = coinsText->getPosition();
-    
-    sprite->setPosition(beginPos);
-    sprite->runAction( Sequence::create(ScaleTo::create(0.1f, 0.5f),
-                                        MoveTo::create(beginPos.getDistance(endPos)/1500.f, endPos),
-                                        RemoveSelf::create(),
-                                        CallFuncOfActionFinish,
-                                        nullptr));
-}
-
-void GamePlayScene::adjustGetTimerEvent(EventCustom* event)
-{
-    --_activeTimerCount;
-    
-    _playTimer += 5.f;
-}
-
 void GamePlayScene::updateForPlayTimer(float dt)
 {
 	if (_isTimerPause || isScheduled( schedule_selector(GamePlayScene::updateForFeverMode) ))
@@ -322,23 +282,15 @@ void GamePlayScene::updateForPlayTimer(float dt)
     if (_playTimer < 0.f)
     {
         _playTimer = 0.f;
-        
-        if (_activeTimerCount == 0)
-        {
-			_playTimer = PLAY_TIME;
 
- //           unschedule( schedule_selector(GamePlayScene::updateForPlayTimer));
-        }
-        else
-        {
-        }
+        Director::getInstance()->replaceScene(ResultScene::create());
     }
     else
     {
         _playTimer -= dt;
     }
     
-    _timerBar->setPercentage((_playTimer/60.f)*100.f);
+    _timerBar->setPercentage((_playTimer/PLAY_TIME)*100.f);
     
     char szLabel[5];
     sprintf(szLabel, "%d", int(_playTimer + 0.99f));
@@ -355,13 +307,7 @@ void GamePlayScene::updateForFeverMode(float dt)
 
 	if (_feverTimer < 0.f)
 	{
-		_feverTimer = FEVER_DURATION;
-		
-        _feverBar->setPercentage(0.f);
-
-        _blocksManager->setFeverModeEnabled(false);
-
-		unschedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+		disableFeverMode();
 	}
 	else
 	{
@@ -371,6 +317,51 @@ void GamePlayScene::updateForFeverMode(float dt)
 	}
 }
 
+void GamePlayScene::enableFeverMode()
+{
+        _feverBar->setPercentage(100.f);
+
+        _blocksManager->setFeverModeEnabled(true);
+
+		schedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+
+		auto menu = _rootNode->getChildByName("Node");
+		menu->runAction(MoveBy::create(0.6f, Vec2(0.f, -200.f)));
+}
+
+void GamePlayScene::disableFeverMode()
+{
+		_feverTimer = FEVER_DURATION;
+		
+        _feverBar->setPercentage(100.f * _feverStep / FEVER_MAX);
+
+        _blocksManager->setFeverModeEnabled(false);
+
+		unschedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+
+		auto menu = _rootNode->getChildByName("Node");
+		menu->runAction(MoveBy::create(0.6f, Vec2(0.f, 200.f)));
+}
+
+void GamePlayScene::setTouchEnabled(bool var)
+{
+	if (_isTouchEnabled == var)
+	{
+		return;
+	}
+	else
+	{
+		_isTouchEnabled = var;
+	}
+
+	_blocksManager->setTouchEnabled(_isTouchEnabled);
+}
+
+bool GamePlayScene::getTouchEnabled()
+{
+	return _isTouchEnabled;
+}
+
 GamePlayScene::~GamePlayScene(void)
 {
     CC_SAFE_RELEASE(_rootNode);
@@ -378,6 +369,21 @@ GamePlayScene::~GamePlayScene(void)
     CC_SAFE_RELEASE(_feverBar);
     CC_SAFE_RELEASE(_timerBar);
     CC_SAFE_RELEASE(_timerText);
+    
+	_eventDispatcher->removeCustomEventListeners("FeverDecreaseEvent");
+	_eventDispatcher->removeCustomEventListeners("FeverIncreaseEvent");
+
+	_eventDispatcher->removeCustomEventListeners("PutTimerEvent");
+	_eventDispatcher->removeCustomEventListeners("GetTimerEvent");
+
+	_eventDispatcher->removeCustomEventListeners("PutScoreEvent");
+	_eventDispatcher->removeCustomEventListeners("GetScoreEvent");
+
+	_eventDispatcher->removeCustomEventListeners("PauseTimerEvent");
+	_eventDispatcher->removeCustomEventListeners("ResumeTimerEvent");
+
+	_eventDispatcher->removeCustomEventListeners("PutCoinsEvent");
+	_eventDispatcher->removeCustomEventListeners("GetCoinsEvent");
 }
 
 

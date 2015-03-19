@@ -81,6 +81,8 @@ public:
     
     CC_SYNTHESIZE_RETAIN(GameBlock*, _aboveBlock, AboveBlock);
     CC_SYNTHESIZE_RETAIN(GameBlock*, _belowBlock, BelowBlock);
+
+	CC_SYNTHESIZE(bool, _isTouchEnabled, TouchEnabled);
     
 public:
     virtual void setFeverModeEnabled(bool enabled);
@@ -114,11 +116,6 @@ public:
     
     virtual void setFeverModeEnabled(bool enabled);
     
-protected:
-//    virtual void didFinishFalling(void);
-    
-    bool _isHitBelowBlock;
-    
 public:
     void showObvSideColor();
     void hideObvSideColor();
@@ -142,18 +139,23 @@ public:
     
 protected:
     CC_SYNTHESIZE(bool, _isShowRevHintEnabled, ShowRevHintEnabled);
-    
+
+public:
+	void showRevSideHintWithDuration(float duration);
+
 protected:
     virtual void updateForRevSideHint(float dt);
+
+    bool	_isShowRevSideHint;
     
-    float _revHintEnabledTimer;   // use when hit below block
+    float	_showRevSideHintDuration;
     
 protected:
     GameCard(int type) : GameBlock(type)
-    , _isHitBelowBlock(false)
     , _isShowObvSideEnabled(false)
     , _isShowRevHintEnabled(false)
-    , _revHintEnabledTimer(0.f)
+	, _isShowRevSideHint(false)
+    , _showRevSideHintDuration(0.f)
     {
         CCASSERT(isCard(), "");
     }

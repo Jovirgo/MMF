@@ -73,6 +73,11 @@ void GameBlock::initGameBlock(void)
     touchListener->setSwallowTouches(true);
     touchListener->onTouchBegan = [this](Touch* touch, Event* event)
     {
+		if (!_isTouchEnabled)
+		{
+			return false;
+		}
+
         return this->onTouchBegan(touch, event);
     };
     
@@ -156,6 +161,7 @@ GameBlock::GameBlock(int type)
 , _type(type)
 , _aboveBlock(nullptr)
 , _belowBlock(nullptr)
+, _isTouchEnabled(false)
 {
     GameBlocksCountManager::getInstance()->increaseTotalCountWithType(_type);
 }
@@ -273,21 +279,6 @@ void GameCard::setFeverModeEnabled(bool enabled)
         hideRevSideHint();
     }
 }
-
-//void GameCard::didFinishFalling(void)
-//{
-//    GameBlock::didFinishFalling();
-//    
-//    if (!getBelowBlock()->isFalling())
-//    {
-//        _isHitBelowBlock = true;
-//        
-//        if (!_isShowObvSideEnabled && !_isShowRevHintEnabled)
-//        {
-//            showRevSideHint();
-//        }
-//    }
-//}
 
 FiniteTimeAction* GameCard::showObvSideAction()
 {
@@ -416,6 +407,17 @@ void GameCard::hideRevSideHint(void)
     }
 }
 
+void GameCard::showRevSideHintWithDuration(float duration)
+{
+	_showRevSideHintDuration = duration;
+	_isShowRevSideHint = true;
+        
+    if (!_isShowObvSideEnabled && !_isShowRevHintEnabled)
+    {
+		showRevSideHint();
+	}
+}
+
 void GameCard::updateForRevSideHint(float dt)
 {
     const float delta = 10.f;
@@ -451,19 +453,19 @@ void GameCard::updateForRevSideHint(float dt)
         }
     }
     
-    if (_isHitBelowBlock)
+    if (_isShowRevSideHint)
     {
-        if (_revHintEnabledTimer > 0.36f)
+        if (_showRevSideHintDuration < 0.f)
         {
-            _revHintEnabledTimer = 0.f;
+            _showRevSideHintDuration = 0.f;
             
             hideRevSideHint();
             
-            _isHitBelowBlock = false;
+            _isShowRevSideHint = false;
         }
         else
         {
-            _revHintEnabledTimer += dt;
+            _showRevSideHintDuration -= dt;
         }
     }
 }

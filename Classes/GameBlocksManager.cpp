@@ -61,14 +61,19 @@ bool GameBlocksManager::init(int rows, int cols, int cardTypes)
 	_eventDispatcher->addCustomEventListener( "enabledFallingAndFilling",	[this](Event*){ this->setFillingAndFallingEnabled(true); });
 	_eventDispatcher->addCustomEventListener("disabledFallingAndFilling",	[this](Event*){ this->setFillingAndFallingEnabled(false); });
 
+	scheduleUpdate();
+
 	return bRet;
 }
 
 void GameBlocksManager::update(float dt)
 {
-	// filling first
-	updateForFilling(dt);
-	updateForFalling(dt);
+	if (_isFillingAndFalling)
+	{
+		// filling first
+		updateForFilling(dt);
+		updateForFalling(dt);
+	}
 }
 
 void GameBlocksManager::updateForFilling(float dt)
@@ -90,6 +95,7 @@ void GameBlocksManager::updateForFilling(float dt)
 			pushBlockToCol(i, block);
 			block->setFeverModeEnabled(_isFeverModeEnabled);
 			block->setShowObvSideEnabled(true);
+			block->setTouchEnabled(_isTouchEnabled);
 
 
 			Vec2 pos;
@@ -103,21 +109,13 @@ void GameBlocksManager::updateForFilling(float dt)
 
 void GameBlocksManager::updateForFalling(float dt)
 {
-	for (int i = 0; i != _cols; i++)
+	for (int i = 0; i != _cols; ++i)
 	{
 		for (GameBlock* block = _tailBlockOfCol[i]->getBelowBlock()
-			; block != _headBlockOfCol[i]
+		; block != _headBlockOfCol[i]
 		; block = block->getBelowBlock())
 		{
 			block->updateForFalling(dt);
-		}
-
-		// when the tool at the bottom, activate it.
-		GameBlock* bottom = _headBlockOfCol[i]->getAboveBlock();
-
-		if (bottom->isTool() && !bottom->isFalling())
-		{
-			activateTheTool(dynamic_cast<GameTool*>(bottom));
 		}
 	}
 }
@@ -154,15 +152,11 @@ void GameBlocksManager::setFillingAndFallingEnabled(bool var)
 			countManager->addBlockTypeToPriorityQueue(*iter);
 		}
 
-		scheduleUpdate();
-
 		EventCustom event("PauseTimerEvent");
 		_eventDispatcher->dispatchEvent(&event);
 	}
 	else
 	{
-		unscheduleUpdate();
-
 		auto resumeTimerFunc = [this](float dt) {
 			for (int i = 0; i != _cols; ++i)
 			{
@@ -250,6 +244,143 @@ void GameBlocksManager::openTheCard(GameCard* card)
 	}
 }
 
+void GameBlocksManager::showRevSideHintWithDuration(float duration)
+{
+	for (int i = 0; i != _cols; ++i)
+	{
+		for (GameBlock* block = _tailBlockOfCol[i]->getBelowBlock()
+		; block != _headBlockOfCol[i]
+		; block = block->getBelowBlock())
+		{
+			dynamic_cast<GameCard*>(block)->showRevSideHintWithDuration(duration);
+		}
+	}
+}
+
+void GameBlocksManager::autoMatchCards(int matchTimes)
+{
+	if (getChildrenCount() < matchTimes * 2)
+	{
+
+		GameData* gData = GameData::getInstance();
+
+		for (int i = 0; i != getChildrenCount()/2; ++i)
+		{
+			gData->increaseMatch();
+			gData->increaseCombo();
+		}
+
+		matchWildWithWild(nullptr, nullptr);
+
+		return;
+	}
+
+	std::map<GameBlock*, bool> blocksMap;
+
+	for (int i = 0; i != _cols; ++i)
+	{
+		for (GameBlock* block = _tailBlockOfCol[i]->getBelowBlock()
+		; block != _headBlockOfCol[i]
+		; block = block->getBelowBlock())
+		{
+			blocksMap[block] = false;
+		}
+	}
+
+	for (int times = 0; times != matchTimes; ++times)
+	{
+		int col = 1;
+
+		do
+		{
+			col = _cols * CCRANDOM_0_1();
+
+		}while (col == _cols);
+
+		// first block
+		GameBlock* block1st = nullptr;
+
+		for (int i = 1; i <= _cols; i++)
+		{
+			int index = (col-i+_cols) % _cols;
+
+			auto block = _headBlockOfCol[index]->getAboveBlock();
+
+			for (
+				; block != _tailBlockOfCol[index]
+				; block = block->getAboveBlock())
+			{
+				if (block != _tailBlockOfCol[index] && !blocksMap[block])
+				{
+					blocksMap[block] = true;
+					block1st = block;
+					break;
+				}
+			}
+
+			if (block != _tailBlockOfCol[index])
+			{
+				break;
+			}
+		}
+
+		// second block
+		for (int i = 1; i <= _cols; i++)
+		{
+			int index = (col+i) % _cols;
+
+			auto block = _tailBlockOfCol[index]->getBelowBlock();
+
+			for (
+				; block != _headBlockOfCol[index]
+				; block = block->getBelowBlock())
+			{
+				if (block != _headBlockOfCol[index] 
+				&& block1st->getType() == block->getType()
+				&& !blocksMap[block])
+				{
+					blocksMap[block] = true;
+					break;
+				}
+			}
+
+			if (block != _headBlockOfCol[index])
+			{
+				break;
+			}
+		}
+	}
+
+	GameData* gData = GameData::getInstance();
+	for (int i = 0; i != matchTimes; ++i)
+	{
+		gData->increaseMatch();
+		gData->increaseCombo();
+	}
+
+	int score = GameData::getInstance()->getScoreDelta();
+
+	for (auto iter = blocksMap.begin() ; iter != blocksMap.end() ; ++iter)
+	{
+		if (iter->second)
+		{
+			auto block = iter->first;
+
+			dynamic_cast<GameCard*>(block)->showObvSideColorByWildCard();
+
+			// score
+			Vec2 wPos = this->convertToWorldSpace(block->getPosition());
+
+			char szData[50];
+			snprintf(szData, 50, "%d,%d,%f,%f", score, block->getType(), wPos.x, wPos.y);
+
+			EventCustom event("PutScoreEvent");
+			event.setUserData(szData);
+			_eventDispatcher->dispatchEvent(&event);
+		}
+	}
+}
+
 bool GameBlocksManager::isMatch(GameCard const* lCard,
 								GameCard const* rCard)
 {
@@ -318,15 +449,15 @@ void GameBlocksManager::matchCardWithCard(GameCard* lCard, GameCard* rCard)
 
 void GameBlocksManager::matchWildWithWild(GameCard* lWild, GameCard* rWild)
 {
-	lWild->removeFromBlocksManager();
-	rWild->removeFromBlocksManager();
+//	lWild->removeFromBlocksManager();
+//	rWild->removeFromBlocksManager();
 
 	int score = GameData::getInstance()->getScoreDelta();
 
 	for (int i = 0; i != _cols; ++i)
 	{
 		for (auto block = _tailBlockOfCol[i]->getBelowBlock()
-			; block != _headBlockOfCol[i]
+		; block != _headBlockOfCol[i]
 		; block = block->getBelowBlock())
 		{
 			if (block->isCard())
@@ -376,7 +507,7 @@ void GameBlocksManager::matchWildWithCard(GameCard*  wild, GameCard*  card)
 	{
 		for (auto block = _tailBlockOfCol[i]->getBelowBlock()
 			; block != _headBlockOfCol[i]
-		; block = block->getBelowBlock())
+			; block = block->getBelowBlock())
 		{
 			if (block->getType() == card->getType() && block != card)
 			{
@@ -422,108 +553,67 @@ void GameBlocksManager::setFeverModeEnabled(bool isEnabled)
 	{
 		for (GameBlock * block = _tailBlockOfCol[i]->getBelowBlock()
 			; block != _headBlockOfCol[i]
-		; block = block->getBelowBlock())
+			; block = block->getBelowBlock())
 		{
 			block->setFeverModeEnabled(isEnabled);
 		}
 	}
 }
 
-bool GameBlocksManager::getFeverModeEnabled(void)
+bool GameBlocksManager::getFeverModeEnabled()
 {
 	return _isFeverModeEnabled;
 }
 
-void GameBlocksManager::activateTheTool(GameTool* tool)
+void GameBlocksManager::setTouchEnabled(bool isEnabled)
 {
-	switch (tool->getType()) {
-	case TOOL_COIN:
-		adjustForActivateTheCoin(tool); break;
-	case TOOL_MULT:
-		adjustForActivateTheMult(tool); break;
-	case TOOL_TIME:
-		adjustForActivateTheTime(tool); break;
-	default:
-		break;
-	}
-
-	tool->removeFromBlocksManager();
-}
-
-void GameBlocksManager::adjustForActivateTheCoin(GameTool* coin)
-{
-	auto instance = GameBlocksCountManager::getInstance();
-
-	switch (instance->getClearCountWithType(TOOL_COIN)%3)
+	if (_isTouchEnabled == isEnabled)
 	{
-	case 0:
-		{
-			instance->addBlockTypeToPriorityQueue(CARD_WILD);
-			instance->addBlockTypeToPriorityQueue(instance->getNewCardTypeInMinimum());
-			break;
-		}
-	case 1:
-		{
-			instance->addBlockTypeToPriorityQueue(TOOL_MULT);
-			instance->addBlockTypeToPriorityQueue(instance->getNewCardTypeInMinimum());
-			break;
-		}
-	case 2:
-		{
-			instance->addBlockTypeToPriorityQueue(TOOL_TIME);
-			instance->addBlockTypeToPriorityQueue(instance->getNewCardTypeInMinimum());
-			break;
-		}
-	default:
-		break;
+		return;
+	}
+	else
+	{
+		_isTouchEnabled = isEnabled;
 	}
 
-	Vec2 wPos = convertToWorldSpace(coin->getPosition());
-	char szData[15];
-	snprintf(szData, 15, "%.1f,%.1f", wPos.x, wPos.y);
-
-	EventCustom event("PutCoinsEvent");
-	event.setUserData(szData);
-	_eventDispatcher->dispatchEvent(&event);
+	for (int i = 0; i != _rows; ++i)
+	{
+		for (auto block = _tailBlockOfCol[i]->getBelowBlock()
+			; block != _headBlockOfCol[i]
+			; block = block->getBelowBlock())
+		{
+			block->setTouchEnabled(_isTouchEnabled);
+		}
+	}
 }
 
-void GameBlocksManager::adjustForActivateTheMult(GameTool* mult)
-{}
-
-void GameBlocksManager::adjustForActivateTheTime(GameTool* time)
+bool GameBlocksManager::getTouchEnabled(void)
 {
-	Vec2 wPos = convertToWorldSpace(time->getPosition());
-	char szData[15];
-	snprintf(szData, 15, "%.1f,%.1f", wPos.x, wPos.y);
-
-	EventCustom event("PutTimerEvent");
-	event.setUserData(szData);
-	_eventDispatcher->dispatchEvent(&event);
-}
-
-void GameBlocksManager::addNewBlocks()
-{
-	updateForFilling(0);
+	return _isTouchEnabled;
 }
 
 GameBlocksManager::GameBlocksManager(void)
-	: _rows(0)
+	: _isFillingAndFalling(false)
+	, _rows(0)
 	, _cols(0)
 	, _1stCard(nullptr)
 	, _2ndCard(nullptr)
 	, _isFeverModeEnabled(false)
+	, _isTouchEnabled(false)
 {
+/*
 	Animation* animation = nullptr;
+	auto cache = AnimationCache::getInstance();
 
 	animation = AnimationReaderForCocos2d::readAnimationFromPlist("GameBlock/CoinAnimation.plist", 0.08f, 1, true);
-	AnimationCache::getInstance()->addAnimation(animation, COIN_ANIMATION);
+	cache->addAnimation(animation, COIN_ANIMATION);
 	animation = AnimationReaderForCocos2d::readAnimationFromPlist("GameBlock/WildCardObv.plist", 0.08f, 1, true);
-	AnimationCache::getInstance()->addAnimation(animation, WILD_OBV_ANIMATION);
+	cache->addAnimation(animation, WILD_OBV_ANIMATION);
 	animation = AnimationReaderForCocos2d::readAnimationFromPlist("GameBlock/WildCardRev.plist", 0.08f, 1, true);
-	AnimationCache::getInstance()->addAnimation(animation, WILD_REV_ANIMATION);
+	cache->addAnimation(animation, WILD_REV_ANIMATION);
 	animation = AnimationReaderForCocos2d::readAnimationFromPlist("GameBlock/MultiplyAnimation.plist", 0.08f, 1, true);
-	AnimationCache::getInstance()->addAnimation(animation, MULT_ANIMATION);
-
+	cache->addAnimation(animation, MULT_ANIMATION);
+*/
 	for (int i = 0; i != BLOCKS_COL_MAX; i++)
 	{
 		_headBlockOfCol[i] = nullptr;
@@ -541,12 +631,15 @@ GameBlocksManager::~GameBlocksManager(void)
 		CC_SAFE_RELEASE(_headBlockOfCol[i]);
 		CC_SAFE_RELEASE(_tailBlockOfCol[i]);
 	}
-
+/*
 	auto cache = AnimationCache::getInstance();
 	cache->removeAnimation(COIN_ANIMATION);
 	cache->removeAnimation(WILD_OBV_ANIMATION);
 	cache->removeAnimation(WILD_REV_ANIMATION);
 	cache->removeAnimation(MULT_ANIMATION);
+*/
+	_eventDispatcher->removeCustomEventListeners("enabledFallingAndFilling");
+	_eventDispatcher->removeCustomEventListeners("disabledFallingAndFilling");
 }
 
 

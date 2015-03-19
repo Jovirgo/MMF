@@ -41,8 +41,9 @@ bool AppDelegate::applicationDidFinishLaunching() {
     // set FPS. the default value is 1.0/60 if you don't call this
     director->setAnimationInterval(1.0 / 60);
 
-	// set FrameSize by self
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32)
 	glview->setFrameSize(320, 480);
+#endif
     
     // set design resolution size auto adapt to 960x640 or 640x960
     Size dvSize = glview->getFrameSize();

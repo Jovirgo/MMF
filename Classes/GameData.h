@@ -1,4 +1,4 @@
-//
+﻿//
 //  GameData.h
 //  NewFlipop
 //
@@ -28,7 +28,12 @@ public:
     
     void increaseCombo()
     {
-        _comboMax = MAX(++_combo, _comboMax);
+		if (_comboMax < (++_combo))
+		{
+			_comboMax = _combo;
+		}
+
+		CCLOG("_combo = %d", _combo);
     }
 
 	void increaseMatch()
