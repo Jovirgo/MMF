@@ -43,24 +43,17 @@ public:
     
     int getScoreDelta()
     {
-        return BASE_SCORE * _combo * _multiply;
+        return GAMEPLAY_BaseScore * _combo * _multiply;
     }
 
-	void resetGameData();
+	void resetGameDataInLevel(int levelID);
     
     CC_SYNTHESIZE(int,  _score,     Score);
     CC_SYNTHESIZE(int,  _combo,     Combo);
     CC_SYNTHESIZE(int,  _comboMax,  ComboMax);
     CC_SYNTHESIZE(int,  _multiply,  Multiply);
 	CC_SYNTHESIZE(int,	_match,		Match);
-    
-public:
-    void increaseCoins(int delta)
-    {
-        _coins += delta;
-    }
-    
-    CC_SYNTHESIZE(int,	_coins,		 Coins);
+	CC_SYNTHESIZE(int,	_levelId,	LevelId);
     
 private:
     GameData(void);

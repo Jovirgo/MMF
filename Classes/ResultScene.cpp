@@ -1,7 +1,6 @@
 #include "ResultScene.h"
 #include "cocostudio/ActionTimeline/CSLoader.h"
 #include "GameData.h"
-#include "GamePlayScene.h"
 
 USING_NS_CC;
 
@@ -36,7 +35,7 @@ bool ResultScene::init()
 	// button
 	auto playBtn = dynamic_cast<ui::Button*>(rootNode->getChildByName("BtnPlay"));
 	playBtn->addClickEventListener([](Ref*){
-		Director::getInstance()->replaceScene(GamePlayScene::create());
+		Director::getInstance()->popScene();
 	});
 
 	return bRet;

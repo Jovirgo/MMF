@@ -77,12 +77,16 @@ protected:
     int _type;
     
 public:
+	// removeFromBlocksMananger animation
+	virtual cocos2d::FiniteTimeAction* removeSelfAction();
+
     void removeFromBlocksManager(void);
     
     CC_SYNTHESIZE_RETAIN(GameBlock*, _aboveBlock, AboveBlock);
     CC_SYNTHESIZE_RETAIN(GameBlock*, _belowBlock, BelowBlock);
 
 	CC_SYNTHESIZE(bool, _isTouchEnabled, TouchEnabled);
+	CC_SYNTHESIZE(bool, _isPaired,		 IsPaired);
     
 public:
     virtual void setFeverModeEnabled(bool enabled);
@@ -115,6 +119,8 @@ public:
 //    virtual void onTouchEnded(cocos2d::Touch* touch, cocos2d::Event* event);
     
     virtual void setFeverModeEnabled(bool enabled);
+
+	virtual cocos2d::FiniteTimeAction* removeSelfAction();
     
 public:
     void showObvSideColor();
@@ -131,14 +137,14 @@ protected:
     void ShowObvSideEnabledTrue(void);
     void ShowObvSideEnabledFalse(void);
     
-    CC_PROPERTY(bool, _isShowObvSideEnabled, ShowObvSideEnabled);
+    CC_PROPERTY(bool,	_isShowObvSideEnabled,	ShowObvSideEnabled);
     
 public:
     void showRevSideHint(void);
     void hideRevSideHint(void);
     
 protected:
-    CC_SYNTHESIZE(bool, _isShowRevHintEnabled, ShowRevHintEnabled);
+    CC_SYNTHESIZE(bool,	_isShowRevHintEnabled,	ShowRevHintEnabled);
 
 public:
 	void showRevSideHintWithDuration(float duration);

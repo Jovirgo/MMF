@@ -23,14 +23,7 @@ private:
 public:
     int getNewBlockType();
     
-    int getNewCardTypeInMinimum();
-    
     int getNewCardTypeAtRandom();
-    
-private:
-    int _newType;
-    
-    CC_PROPERTY(int, _cardTypes, CardTypes);
     
 public:
     void addBlockTypeToPriorityQueue(int type)
@@ -41,8 +34,6 @@ public:
     }
     
 private:
-//    void addFormationToPriorityQueue(const std::vector<int>& formation);
-    
     std::list<int> _priorityBlockTypeQueue;
     
 public:
@@ -60,15 +51,22 @@ public:
     }
 
 	int getTotalCountWithRemaining();
-    
+
 private:
-    int _totalBlocksCount[TYPE_TOTAL];
+    int	_totalBlocksCount[TYPE_TOTAL];
     int _clearBlocksCount[TYPE_TOTAL];
+	
+public:
+	void setTypeLaunched(int type, bool var);
+
+private:
+	bool _isTypeLaunched[TYPE_TOTAL];
+
+	int  _typeLaunchedCount;
     
 private:
     GameBlocksCountManager(void)
-    : _newType(TYPE_NULL)
-    , _cardTypes(5)
+		: _typeLaunchedCount(0)
     {
         resetBlocksCount();
     }

@@ -14,58 +14,82 @@
 #include "ui/CocosGUI.h"
 #include "NumberCountingLabel.h"
 
+// event id
+#define EVENT_FeverDecrease	"FeverDecreaseEvent"
+#define EVENT_FeverIncrease	"FeverIncreaseEvent"
+
+#define EVENT_PauseTimer	"PauseTimerEvent"
+#define EVENT_ResumeTimer	"ResumeTimerEvent"
+
+#define EVENT_PutScore		"PutScoreEvent"
+#define EVENT_GetScore		"GetScoreEvent"
+#define UDATA_PutScore		"%d,%d,%.1f,%.1f"
+
+
+struct GamePlayInfo
+{
+	// read data from LevelInfo.csv
+	int	levelId;
+	int	rows;
+	int cols;
+	int time;
+
+	// 1 mean have this color, 0 is No
+	int color[5];
+
+	int bonusCoin;
+
+	// 3 differenc degree goal and bonus
+	int scoreGoal[3];
+	int bonusTool[3];
+};
+
 class GamePlayScene: public cocos2d::Scene
 {
 public:
-    CREATE_FUNC(GamePlayScene);
+	static GamePlayScene* create(const GamePlayInfo& levelInfo);
     
-    virtual bool init();
+    virtual bool init(const GamePlayInfo& levelInfo);
     
+	void initGamePlayInfo(const GamePlayInfo& levelInfo);
+	void initCocostudioRootNode();
+	void initMenu();
+
 private:
-	// 挂载 Cocostudio 的节点
     cocos2d::Node* _rootNode;
     
 private:
-	void initMenu();
 
-	// 增加一个 fever 值，如果 fever 达到峰值，则启用 fever 模式。
     void adjustFeverIncreaseEvent(cocos2d::EventCustom* event);
-	// 减少一个 fever 值，直到 fever 为 0。
     void adjustFeverDecreaseEvent(cocos2d::EventCustom* event);
-    // 放飞分数
+
     void adjustPutScoreEvent(cocos2d::EventCustom* event);
-	// 得到分数
     void adjustGetScoreEvent(cocos2d::EventCustom* event);
     
-	// 更新游戏时间
     void updateForPlayTimer(float dt);
-	// 更新疯狂模式的时间
 	void updateForFeverMode(float dt);
+	void updateForScore(float dt);
 
-	// 启动和关闭疯狂模式
 	void enableFeverMode();
 	void disableFeverMode();
     
-	// 消除块的管理者
     GameBlocksManager* _blocksManager;
 
-    // fever 值
     int     _feverStep;
-	// fever 模式的计时器
     float   _feverTimer;
-	// fever 模式的进度条
-    cocos2d::ProgressTimer* _feverBar;
-	// 顾名思义
+    cocos2d::ui::LoadingBar* _feverBar;
 	bool _isFeverPause;
     
-    // 游戏时间的计时器
+	float _playTimerMax;
     float _playTimer;
-	// 游戏时间的进度条
-    cocos2d::ProgressTimer* _timerBar;
-	// 游戏时间的显示标签
-    cocos2d::ui::Text*      _timerText;
-	// 顾名思义
+//    cocos2d::ProgressTimer* _timerBar;
+    cocos2d::ui::TextBMFont*      _timerText;
 	bool _isTimerPause;
+
+	cocos2d::ui::LoadingBar* _scoreBar;
+	NumberCountingLabel*	_scoreText;
+
+	GamePlayInfo _gamePlayInfo;
 
 	CC_PROPERTY(bool, _isTouchEnabled, TouchEnabled);
     
@@ -74,13 +98,16 @@ private:
     : _rootNode(nullptr)
     , _blocksManager(nullptr)
     , _feverStep(0)
-    , _feverTimer(FEVER_DURATION)
+    , _feverTimer(GAMEPLAY_FeverDuration)
     , _feverBar(nullptr)
 	, _isFeverPause(true)
-    , _playTimer(PLAY_TIME)
-    , _timerBar(nullptr)
+	, _playTimerMax(60.f)
+    , _playTimer(_playTimerMax)
+//    , _timerBar(nullptr)
     , _timerText(nullptr)
 	, _isTimerPause(true)
+	, _scoreBar(nullptr)
+	, _scoreText(nullptr)
 	, _isTouchEnabled(false)
     {}
     

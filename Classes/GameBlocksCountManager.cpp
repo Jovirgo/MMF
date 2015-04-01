@@ -25,70 +25,41 @@ GameBlocksCountManager* GameBlocksCountManager::getInstance()
 
 int GameBlocksCountManager::getNewBlockType()
 {
+	int type = TYPE_NULL;
+
     if (_priorityBlockTypeQueue.empty())
     {
-        _newType = getNewCardTypeInMinimum();
+        // type = TYPE_NULL;
     }
     else
     {
-        _newType = _priorityBlockTypeQueue.front();
+        type = _priorityBlockTypeQueue.front();
         
         _priorityBlockTypeQueue.pop_front();
     }
     
-    return _newType;
-}
-
-int GameBlocksCountManager::getNewCardTypeInMinimum()
-{
-    int minType_1 = CARD_1;
-    int minType_2 = CARD_2;
-    
-    for (int type = CARD_3; type <= _cardTypes; ++type)
-    {
-        if (getRemainingCountWithType(minType_2) > getRemainingCountWithType(type))
-        {
-            minType_2 = type;
-        }
-        
-        if (getRemainingCountWithType(minType_1) > getRemainingCountWithType(minType_2))
-        {
-            int temp  = minType_1;
-            minType_1 = minType_2;
-            minType_2 = temp;
-        }
-    }
-    
-    return (_newType != minType_1) ? minType_1 : minType_2;
+    return type;
 }
 
 int GameBlocksCountManager::getNewCardTypeAtRandom()
 {
-    return CARD_1 + int(CCRANDOM_0_1()*_cardTypes) % _cardTypes;
-}
+	CCASSERT(_typeLaunchedCount != 0, "");
 
-void GameBlocksCountManager::setCardTypes(int var)
-{
-    CCASSERT(var > 2, "");
-    
-    _cardTypes = var;
-}
+    int random = int(CCRANDOM_0_1()*_typeLaunchedCount) % _typeLaunchedCount;
 
-int GameBlocksCountManager::getCardTypes()
-{
-    return _cardTypes;
-}
+	for (int type = CARD_1; type != TYPE_TOTAL; ++type)
+	{
+		if (_isTypeLaunched[type])
+		{
+			if (random-- == 0)
+			{
+				return type;
+			}
+		}
+	}
 
-//void GameBlocksCountManager::addFormationToPriorityQueue(const std::vector<int>& formation)
-//{
-//    for (int col = 0; col != BLOCKS_COL_MAX; ++col)
-//    {
-//        for (int row = BLOCKS_ROW_MAX-1; row >= 0; --row)
-//        {
-//            addBlockTypeToPriorityQueue( formation[col+row*BLOCKS_COL_MAX] );
-//        }
-//    }
-//}
+	return TYPE_NULL;
+}
 
 void GameBlocksCountManager::increaseTotalCountWithType(int type)
 {
@@ -105,17 +76,21 @@ void GameBlocksCountManager::increaseClearCountWithType(int type)
 
 	if (getTotalCountWithRemaining() == 0)
 	{
-		EventCustom event("enabledFallingAndFilling");
+		EventCustom event( EVENT_BeginNextRound );
 		Director::getInstance()->getEventDispatcher()->dispatchEvent(&event);
 	}
 }
 
 void GameBlocksCountManager::resetBlocksCount()
 {
+	_typeLaunchedCount = 0;
+
     for (int type = CARD_1; type != TYPE_TOTAL; ++type)
     {
         _totalBlocksCount[type] = 0;
         _clearBlocksCount[type] = 0;
+
+		_isTypeLaunched[type] = false;
     }
 }
 
@@ -129,4 +104,25 @@ int GameBlocksCountManager::getTotalCountWithRemaining()
 	}
 
 	return totalRemaining;
+}
+
+void GameBlocksCountManager::setTypeLaunched(int type, bool var)
+{
+	if (_isTypeLaunched[type] == var)
+	{
+		return;
+	}
+	else
+	{
+		_isTypeLaunched[type] = var;
+	}
+
+	if (_isTypeLaunched[type])
+	{
+		++_typeLaunchedCount;
+	}
+	else
+	{
+		--_typeLaunchedCount;
+	}
 }

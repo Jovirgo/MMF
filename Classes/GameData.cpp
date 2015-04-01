@@ -20,13 +20,13 @@ GameData * GameData::getInstance(void)
     return _instance;
 }
 
-void GameData::resetGameData()
+void GameData::resetGameDataInLevel(int levelId)
 {
+	_levelId = levelId;
 	_score = 0;
 	_combo = 0;
 	_comboMax = _combo;
 	_multiply = 1;
-	_coins = 0;
 	_match = 0;
 }
 
@@ -35,6 +35,6 @@ GameData::GameData(void)
 , _combo(0)
 , _comboMax(_combo)
 , _multiply(1)
-, _coins(0)
 , _match(0)
+, _levelId(0)
 {}

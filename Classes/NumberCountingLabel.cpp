@@ -12,11 +12,10 @@ USING_NS_CC;
 
 bool NumberCountingLabel::init()
 {
-    bool bRet = Label::init();
+    bool bRet = LabelBMFont::initWithString("0", "fonts/Score.fnt");
     
-    setSystemFontName("Arial");
-    setSystemFontSize(32);
-    setString("0");
+//    setSystemFontName("Arial");
+//    setSystemFontSize(32);
     
     scheduleUpdate();
     

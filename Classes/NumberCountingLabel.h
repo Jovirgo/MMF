@@ -11,7 +11,7 @@
 
 #include "cocos2d.h"
 
-class NumberCountingLabel: public cocos2d::Label
+class NumberCountingLabel: public cocos2d::LabelBMFont
 {
 public:
     CREATE_FUNC(NumberCountingLabel);

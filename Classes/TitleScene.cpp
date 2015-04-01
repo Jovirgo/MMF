@@ -9,8 +9,10 @@
 #include "TitleScene.h"
 #include "cocostudio/ActionTimeline/CSLoader.h"
 #include "GameZoomMenuItem.h"
-#include "SettingsScene.h"
-#include "BoosterScene.h"
+#include "GameResources.h"
+#include "GameLevelMapScene.h"
+
+
 
 USING_NS_CC;
 
@@ -18,7 +20,7 @@ bool TitleScene::init(void)
 {
     bool bRet = Scene::init();
     
-    auto rootNode = CSLoader::createNode("Title/Title.csb");
+    auto rootNode = CSLoader::createNode( TITLE_Csb );
     addChild(rootNode);
     
     Size winSize = Director::getInstance()->getWinSize();
@@ -34,10 +36,10 @@ bool TitleScene::init(void)
     newMenu->setPosition(oldMenu->getPosition());
     
     const char* szFileNameOfBtnTex[] = {
-        "Title/Title_BtnPlay.png",
-        "Title/Title_BtnRanking.png",
-        "Title/Title_BtnStats.png",
-        "Title/Title_BtnSetting.png"
+		TITLE_BtnPlay,
+        TITLE_BtnRank,
+        TITLE_BtnStats,
+        TITLE_BtnSettings
     };
     
     for (int i = 0; i != oldMenu->getChildrenCount(); ++i)
@@ -65,7 +67,7 @@ void TitleScene::menuCallback(Ref* sender)
     {
         case 0: // play
         {
-            Director::getInstance()->pushScene(BoosterScene::create());
+			Director::getInstance()->replaceScene( GameLevelMapScene::create() );
             break;
         }
         case 1: // ranking
@@ -78,7 +80,6 @@ void TitleScene::menuCallback(Ref* sender)
         }
         case 3: // setting
         {
-            Director::getInstance()->pushScene(SettingsScene::create());
             break;
         }
         default:

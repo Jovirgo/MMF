@@ -1,8 +1,8 @@
 #include "AppDelegate.h"
-#include "HelloWorldScene.h"
 
 #include "GamePlayScene.h"
 #include "TitleScene.h"
+#include "GameLevelMapScene.h"
 
 USING_NS_CC;
 
@@ -42,23 +42,23 @@ bool AppDelegate::applicationDidFinishLaunching() {
     director->setAnimationInterval(1.0 / 60);
 
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32)
-	glview->setFrameSize(320, 480);
+	glview->setFrameSize(384, 512);
 #endif
     
     // set design resolution size auto adapt to 960x640 or 640x960
     Size dvSize = glview->getFrameSize();
-    Size dfSize = dvSize.width > dvSize.height ? Size(960, 640) : Size(640, 960);
+    Size dfSize = dvSize.width > dvSize.height ? Size(1080, 720) : Size(720, 1080);
     
     float dfcmp = dfSize.width / dfSize.height; //width / height
     float dvcmp = dvSize.width / dvSize.height;
     
     float rate = 0;
     
-    if (dvcmp > dfcmp)
+    /*if (dvcmp > dfcmp)
     {
         rate = dfSize.height / dvSize.height;
     }
-    else
+    else*/
     {
         rate = dfSize.width / dvSize.width;
     }
@@ -66,9 +66,13 @@ bool AppDelegate::applicationDidFinishLaunching() {
     CCLOG("rate = %f", rate);
     
     glview->setDesignResolutionSize(dvSize.width * rate, dvSize.height * rate, ResolutionPolicy::NO_BORDER);
+//    glview->setDesignResolutionSize(dfSize.width, dfSize.height, ResolutionPolicy::SHOW_ALL);
+	// set design resolution size end.
     
     // create a scene. it's an autorelease object
-    auto scene = GamePlayScene::create();
+	auto scene = Scene::create();
+	auto layer = TitleScene::create();
+	scene->addChild(layer);
 
     // run
     director->runWithScene(scene);

@@ -17,6 +17,7 @@
 
 USING_NS_CC;
 
+// score label color
 const Color3B COLOR_1	( 254,  72, 101);
 const Color3B COLOR_2	(  63, 189, 252);
 const Color3B COLOR_3	( 255, 226,  67);
@@ -24,19 +25,73 @@ const Color3B COLOR_4	( 121, 214, 107);
 const Color3B COLOR_5	( 213, 104, 252);
 const Color3B COLOR_6 = Color3B::BLACK;
 
-bool GamePlayScene::init(void)
+GamePlayScene* GamePlayScene::create(const GamePlayInfo& levelInfo)
+{
+	auto pRet = new GamePlayScene();
+
+	if (pRet && pRet->init(levelInfo))
+	{
+		pRet->autorelease();
+	}
+	else
+	{
+		delete pRet;
+		pRet = nullptr;
+	}
+
+	return pRet;
+}
+
+bool GamePlayScene::init(const GamePlayInfo& levelInfo)
 {
     bool bRet = Scene::init();
-    
+   
+	initGamePlayInfo(levelInfo);
 
-	/*
-	* reset data
-	*/
-	GameData::getInstance()->resetGameData();
+	initCocostudioRootNode();
+	
+	// blocks manager
 	GameBlocksCountManager::getInstance()->resetBlocksCount();
 
+	_blocksManager = GameBlocksManager::create(
+		levelInfo.rows, 
+		levelInfo.cols, 
+		levelInfo.color);
 
-    _rootNode = CSLoader::createNode("GamePlay/GamePlay.csb");
+    _blocksManager->retain();
+    _blocksManager->setPositionY(0.f);
+    _rootNode->addChild(_blocksManager);
+    
+    return bRet;
+}
+
+void GamePlayScene::initGamePlayInfo(const GamePlayInfo& levelInfo)
+{
+	_gamePlayInfo.levelId =		levelInfo.levelId;
+	_gamePlayInfo.rows =		levelInfo.rows;
+	_gamePlayInfo.cols =		levelInfo.cols;
+	_gamePlayInfo.time =		levelInfo.time;
+	_gamePlayInfo.color[0] =	levelInfo.color[0];
+	_gamePlayInfo.color[1] =	levelInfo.color[1];
+	_gamePlayInfo.color[2] =	levelInfo.color[2];
+	_gamePlayInfo.color[3] =	levelInfo.color[3];
+	_gamePlayInfo.color[4] =	levelInfo.color[4];
+	_gamePlayInfo.bonusCoin =	levelInfo.bonusCoin;
+	_gamePlayInfo.scoreGoal[0] = levelInfo.scoreGoal[0];
+	_gamePlayInfo.scoreGoal[1] = levelInfo.scoreGoal[1];
+	_gamePlayInfo.scoreGoal[2] = levelInfo.scoreGoal[2];
+	_gamePlayInfo.bonusTool[0] = levelInfo.bonusTool[0];
+	_gamePlayInfo.bonusTool[1] = levelInfo.bonusTool[1];
+	_gamePlayInfo.bonusTool[2] = levelInfo.bonusTool[2];
+
+	// reset data
+	GameData::getInstance()->resetGameDataInLevel(_gamePlayInfo.levelId);
+}
+
+void GamePlayScene::initCocostudioRootNode()
+{
+	// loading cocostudio
+    _rootNode = CSLoader::createNode( GAMEPLAY_Csb );
     _rootNode->retain();
     addChild(_rootNode);
     
@@ -44,101 +99,97 @@ bool GamePlayScene::init(void)
     _rootNode->setPosition( Vec2(winSize.width /2,
                                  winSize.height/2));
 
-    _blocksManager = GameBlocksManager::create(4, 4, 3);
-    _blocksManager->retain();
-    _blocksManager->setPositionY(-30.f);
-    _rootNode->addChild(_blocksManager);
-
 	initMenu();
     
+	// init top bar
+	auto topBar = _rootNode->getChildByName("TopBar");
+	topBar->setPositionY( winSize.height/2 );
+	topBar->setZOrder(10);
 
     /*
 	* init fever bar and add fever event listener
 	*/
-    auto feverBarBg = _rootNode->getChildByName("FeverBar");
-    
-    _feverBar = ProgressTimer::create(Sprite::create("GamePlay/Gameplay_Feverfull.png"));
+    _feverBar = dynamic_cast<ui::LoadingBar*>( topBar->getChildByName("FeverBar") );
     _feverBar->retain();
-    _feverBar->setPosition(feverBarBg->getPosition());
-    _feverBar->setType(ProgressTimer::Type::BAR);
-    _feverBar->setBarChangeRate(Vec2(1, 0));
-    _feverBar->setPercentage(0.f);
-    _feverBar->setMidpoint(Vec2::ZERO);
-    _rootNode->addChild(_feverBar, feverBarBg->getZOrder()+1);
     
-	_eventDispatcher->addCustomEventListener("FeverDecreaseEvent", CC_CALLBACK_1(GamePlayScene::adjustFeverDecreaseEvent, this));
-	_eventDispatcher->addCustomEventListener("FeverIncreaseEvent", CC_CALLBACK_1(GamePlayScene::adjustFeverIncreaseEvent, this));
-    
+	_eventDispatcher->addCustomEventListener( EVENT_FeverDecrease, CC_CALLBACK_1(GamePlayScene::adjustFeverDecreaseEvent, this));
+	_eventDispatcher->addCustomEventListener( EVENT_FeverIncrease, CC_CALLBACK_1(GamePlayScene::adjustFeverIncreaseEvent, this));
 
     /*
 	* init score text and add score event listener
 	*/
-    auto oldScoreText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtScore"));
+	_scoreBar = dynamic_cast<ui::LoadingBar*>( topBar->getChildByName("ScoreBar") );
+	_scoreBar->retain();
+
+	// score star
+	Size scoreBarSize = _scoreBar->getContentSize();
+
+	for (int i = 0; i != 2; ++i)
+	{
+		float pecentage = float(_gamePlayInfo.scoreGoal[i])/_gamePlayInfo.scoreGoal[2];
+
+		auto star = _scoreBar->getChildByTag(i);
+		star->setPositionX( scoreBarSize.width * pecentage );
+	}
+
+    auto oldScoreText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("TxtScore"));
     oldScoreText->removeFromParent();
     
-    auto newScoreText = NumberCountingLabel::create();
-    newScoreText->retain();
-    newScoreText->setPosition(oldScoreText->getPosition());
-    newScoreText->setAnchorPoint(oldScoreText->getAnchorPoint());
-    newScoreText->setSystemFontName(oldScoreText->getFontName());
-    newScoreText->setSystemFontSize(oldScoreText->getFontSize());
-    newScoreText->setCountingDuration(0.2f);
-    _rootNode->addChild(newScoreText, oldScoreText->getZOrder(), oldScoreText->getName());
+    _scoreText = NumberCountingLabel::create();
+    _scoreText->retain();
+    _scoreText->setPosition(oldScoreText->getPosition());
+    _scoreText->setAnchorPoint(oldScoreText->getAnchorPoint());
+//    _scoreText->setSystemFontName(oldScoreText->getFontName());
+//    _scoreText->setSystemFontSize(oldScoreText->getFontSize());
+    _scoreText->setCountingDuration(0.2f);
+    topBar->addChild(_scoreText, oldScoreText->getZOrder(), oldScoreText->getName());
     
-	_eventDispatcher->addCustomEventListener("PutScoreEvent", CC_CALLBACK_1(GamePlayScene::adjustPutScoreEvent, this));
-	_eventDispatcher->addCustomEventListener("GetScoreEvent", CC_CALLBACK_1(GamePlayScene::adjustGetScoreEvent, this));
+	_eventDispatcher->addCustomEventListener( EVENT_PutScore, CC_CALLBACK_1(GamePlayScene::adjustPutScoreEvent, this));
+	_eventDispatcher->addCustomEventListener( EVENT_GetScore, CC_CALLBACK_1(GamePlayScene::adjustGetScoreEvent, this));
     
-
 	/*
 	* init timer bar and add timer event listener
 	*/
-    _timerText = dynamic_cast<ui::Text*>(_rootNode->getChildByName("TxtTimer"));
+	_playTimer = _playTimerMax = _gamePlayInfo.time;
+
+    _timerText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("BMFontTimer"));
     _timerText->retain();
 
     char szLabel[5];
     sprintf(szLabel, "%d", int(_playTimer + 0.99f));
     _timerText->setString(szLabel);
-    
+
+    /*
     auto timerBarBg = _rootNode->getChildByName("TimerBar");
-    _timerBar = ProgressTimer::create(Sprite::create("GamePlay/Gameplay_TimeFull.png"));
+    _timerBar = ProgressTimer::create( Sprite::create( GAMEPLAY_TimerBar ));
     _timerBar->retain();
     _timerBar->setPosition(timerBarBg->getPosition());
     _timerBar->setReverseDirection(true);
     _timerBar->setPercentage(100.f);
     _rootNode->addChild(_timerBar, timerBarBg->getZOrder()+1);
-
-	_eventDispatcher->addCustomEventListener("PauseTimerEvent", [this](Event*){ 
+*/
+	_eventDispatcher->addCustomEventListener( EVENT_PauseTimer, [this](Event*){ 
 		_isTimerPause = true;
 		_isFeverPause = true;
 		setTouchEnabled(false);
 	});
 
-	_eventDispatcher->addCustomEventListener("ResumeTimerEvent", [this](Event*){
+	_eventDispatcher->addCustomEventListener( EVENT_ResumeTimer, [this](Event*){
 		_isTimerPause = false;
 		_isFeverPause = false;
 		setTouchEnabled(true);
 	});
 
     schedule( schedule_selector(GamePlayScene::updateForPlayTimer));
-
-
-	/*
-	* start animation
-	*/
-	auto gameTimeLine = CSLoader::createTimeline("GamePlay/GamePlay.csb");
-	gameTimeLine->play("ReadyAnimation", false);
-	gameTimeLine->setLastFrameCallFunc([this](){ schedule( schedule_selector(GamePlayScene::updateForPlayTimer)); });
-
-	_rootNode->runAction(gameTimeLine);
-
-	setTouchEnabled(true);
-    
-    return bRet;
+	schedule( schedule_selector(GamePlayScene::updateForScore));
 }
 
 void GamePlayScene::initMenu()
 {
-	auto menuNode = dynamic_cast<Node*>(_rootNode->getChildByName("Node"));
+	auto menuNode = dynamic_cast<Node*>(_rootNode->getChildByName("BoosterBar"));
+
+	Size winSize = Director::getInstance()->getWinSize();
+	menuNode->setPositionY(115.f - winSize.height/2);
 
 	auto button1 = dynamic_cast<ui::Button*>(menuNode->getChildByName("Btn1"));
 	button1->addClickEventListener([this](Ref*){
@@ -152,8 +203,8 @@ void GamePlayScene::initMenu()
 	button2->addClickEventListener([this](Ref*){
 		if (!_isTouchEnabled)
 			return;
-
-		_blocksManager->autoMatchCards(3);
+		
+		_blocksManager->showRevSideHintWithDuration(0.36f);
 	});
 
 	auto button3 = dynamic_cast<ui::Button*>(menuNode->getChildByName("Btn3"));
@@ -162,9 +213,10 @@ void GamePlayScene::initMenu()
 			return;
 
 		_playTimer += 5.f;
-		if (_playTimer > PLAY_TIME)
+
+		if (_playTimerMax < _playTimer)
 		{
-			_playTimer = PLAY_TIME;
+			_playTimerMax = _playTimer;
 		}
 	});
 
@@ -172,14 +224,14 @@ void GamePlayScene::initMenu()
 	button4->addClickEventListener([this](Ref*){
 		if (!_isTouchEnabled)
 			return;
-
-		_blocksManager->showRevSideHintWithDuration(0.36f);
+		
+		_blocksManager->autoMatchCards(3);
 	});
 }
 
 void GamePlayScene::adjustFeverIncreaseEvent(EventCustom *event)
 {
-    if (_feverStep + 1 == FEVER_MAX)
+    if (_feverStep + 1 == GAMEPLAY_FeverStep)
     {
 		_feverStep = 0;
 
@@ -187,7 +239,7 @@ void GamePlayScene::adjustFeverIncreaseEvent(EventCustom *event)
     }
     else
     {
-        _feverBar->setPercentage(100.f * (++_feverStep) / FEVER_MAX);
+        _feverBar->setPercent(100.f * (++_feverStep) / GAMEPLAY_FeverStep);
     }
 }
 
@@ -195,7 +247,7 @@ void GamePlayScene::adjustFeverDecreaseEvent(EventCustom *event)
 {
     if (_feverStep > 0)
     {
-        _feverBar->setPercentage(100.f * (--_feverStep) / FEVER_MAX);
+        _feverBar->setPercent(100.f * (--_feverStep) / GAMEPLAY_FeverStep);
     }
 }
 
@@ -208,8 +260,7 @@ void GamePlayScene::adjustGetScoreEvent(EventCustom *event)
     GameData* instance = GameData::getInstance();
     instance->increaseScore(scoreDelta);
     
-    auto scoreText = dynamic_cast<NumberCountingLabel*>(_rootNode->getChildByName("TxtScore"));
-    scoreText->setGoalNumber( instance->getScore());
+    _scoreText->setGoalNumber( instance->getScore());
 }
 
 void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
@@ -229,11 +280,13 @@ void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
 	/*
 	* create a animation of the score will be get
 	*/
+	auto topBar = _rootNode->getChildByName("TopBar");
+
     char szScoreDelta[10];
     snprintf(szScoreDelta, 10, "%d", scoreDelta);
     
     auto scoreDeltaLabel = Label::createWithSystemFont(szScoreDelta, "Arial", 60);
-    _rootNode->addChild(scoreDeltaLabel, 5);
+    topBar->addChild(scoreDeltaLabel, 5);
     
     switch (scoreColor)
     {
@@ -249,7 +302,7 @@ void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
     
     auto CallFuncOfActionFinish = CallFunc::create([=](void){
         
-        EventCustom event("GetScoreEvent");
+        EventCustom event( EVENT_GetScore );
         
         char szData[10];
         snprintf(szData, 10, "%d", scoreDelta);
@@ -258,10 +311,8 @@ void GamePlayScene::adjustPutScoreEvent(EventCustom *event)
         _eventDispatcher->dispatchEvent(&event);
     });
     
-    Vec2 beginPos = _rootNode->convertToNodeSpace(Vec2(wPosX, wPosY));
-    
-    auto scoreText = dynamic_cast<NumberCountingLabel*>(_rootNode->getChildByName("TxtScore"));
-    Vec2 endPos = scoreText->getPosition() + (scoreText->getContentSize()*0.5f);
+    Vec2 beginPos = topBar->convertToNodeSpace(Vec2(wPosX, wPosY));
+    Vec2 endPos = _scoreText->getPosition() + (_scoreText->getContentSize()*0.5f);
     
     scoreDeltaLabel->setPosition(beginPos);
     scoreDeltaLabel->runAction( Sequence::create(MoveBy::create(0.18f, Vec2(0.f, 60.f)),
@@ -290,7 +341,7 @@ void GamePlayScene::updateForPlayTimer(float dt)
         _playTimer -= dt;
     }
     
-    _timerBar->setPercentage((_playTimer/PLAY_TIME)*100.f);
+//    _timerBar->setPercent((_playTimer/_playTimerMax)*100.f);
     
     char szLabel[5];
     sprintf(szLabel, "%d", int(_playTimer + 0.99f));
@@ -313,34 +364,62 @@ void GamePlayScene::updateForFeverMode(float dt)
 	{
 		_feverTimer -= dt;
 
-		_feverBar->setPercentage(100.f * _feverTimer / FEVER_DURATION);
+		_feverBar->setPercent(100.f * _feverTimer / GAMEPLAY_FeverDuration);
 	}
+}
+
+void GamePlayScene::updateForScore(float dt)
+{
+	int textScore = _scoreText->getCurrNumber();
+
+	for (int i = 0; i != 3; ++i)
+	{
+		if (textScore > _gamePlayInfo.scoreGoal[i])
+		{
+			auto scoreStar = dynamic_cast<Sprite*>(_scoreBar->getChildByTag(i));
+			int  actionTag = 50;
+
+			if (scoreStar->getColor() != Color3B::WHITE
+				&& scoreStar->getActionByTag(actionTag) == nullptr)
+			{
+				// enable animation
+				auto action = Spawn::create( 
+					ScaleTo::create(0.1f, 1.f),
+					TintTo::create(0.1f, Color3B::WHITE),
+					nullptr);
+				action->setTag( actionTag );
+				scoreStar->runAction( action );
+			}
+		}
+	}
+
+	_scoreBar->setPercent(100.f * textScore/_gamePlayInfo.scoreGoal[2]);
 }
 
 void GamePlayScene::enableFeverMode()
 {
-        _feverBar->setPercentage(100.f);
+	_feverBar->setPercent(100.f);
 
-        _blocksManager->setFeverModeEnabled(true);
+	_blocksManager->setFeverModeEnabled(true);
 
-		schedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+	schedule( schedule_selector(GamePlayScene::updateForFeverMode) );
 
-		auto menu = _rootNode->getChildByName("Node");
-		menu->runAction(MoveBy::create(0.6f, Vec2(0.f, -200.f)));
+	auto menu = _rootNode->getChildByName("BoosterBar");
+	menu->runAction(MoveBy::create(0.6f, Vec2(0.f, -200.f)));
 }
 
 void GamePlayScene::disableFeverMode()
 {
-		_feverTimer = FEVER_DURATION;
-		
-        _feverBar->setPercentage(100.f * _feverStep / FEVER_MAX);
+	_feverTimer = GAMEPLAY_FeverDuration;
 
-        _blocksManager->setFeverModeEnabled(false);
+	_feverBar->setPercent(100.f * _feverStep / GAMEPLAY_FeverStep);
 
-		unschedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+	_blocksManager->setFeverModeEnabled(false);
 
-		auto menu = _rootNode->getChildByName("Node");
-		menu->runAction(MoveBy::create(0.6f, Vec2(0.f, 200.f)));
+	unschedule( schedule_selector(GamePlayScene::updateForFeverMode) );
+
+	auto menu = _rootNode->getChildByName("BoosterBar");
+	menu->runAction(MoveBy::create(0.6f, Vec2(0.f, 200.f)));
 }
 
 void GamePlayScene::setTouchEnabled(bool var)
@@ -367,23 +446,20 @@ GamePlayScene::~GamePlayScene(void)
     CC_SAFE_RELEASE(_rootNode);
     CC_SAFE_RELEASE(_blocksManager);
     CC_SAFE_RELEASE(_feverBar);
-    CC_SAFE_RELEASE(_timerBar);
+//    CC_SAFE_RELEASE(_timerBar);
     CC_SAFE_RELEASE(_timerText);
+	CC_SAFE_RELEASE(_scoreBar);
+	CC_SAFE_RELEASE(_scoreText);
     
-	_eventDispatcher->removeCustomEventListeners("FeverDecreaseEvent");
-	_eventDispatcher->removeCustomEventListeners("FeverIncreaseEvent");
+	_eventDispatcher->removeCustomEventListeners( EVENT_FeverDecrease );
+	_eventDispatcher->removeCustomEventListeners( EVENT_FeverIncrease );
 
-	_eventDispatcher->removeCustomEventListeners("PutTimerEvent");
-	_eventDispatcher->removeCustomEventListeners("GetTimerEvent");
+	_eventDispatcher->removeCustomEventListeners( EVENT_PutScore );
+	_eventDispatcher->removeCustomEventListeners( EVENT_GetScore );
 
-	_eventDispatcher->removeCustomEventListeners("PutScoreEvent");
-	_eventDispatcher->removeCustomEventListeners("GetScoreEvent");
+	_eventDispatcher->removeCustomEventListeners( EVENT_PauseTimer );
+	_eventDispatcher->removeCustomEventListeners( EVENT_ResumeTimer );
 
-	_eventDispatcher->removeCustomEventListeners("PauseTimerEvent");
-	_eventDispatcher->removeCustomEventListeners("ResumeTimerEvent");
-
-	_eventDispatcher->removeCustomEventListeners("PutCoinsEvent");
-	_eventDispatcher->removeCustomEventListeners("GetCoinsEvent");
 }
 
 

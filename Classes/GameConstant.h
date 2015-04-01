@@ -9,18 +9,22 @@
 #ifndef NewFlipop_GameConstant_h
 #define NewFlipop_GameConstant_h
 
-// block
-const float BLOCK_WIDTH  = 108.f;
-const float BLOCK_HEIGHT = 108.f;
+#include "cocos2d.h"
 
-const int   BLOCKS_ROW_MAX = 5;
-const int   BLOCKS_COL_MAX = 5;
-const int   BLOCKS_TOL_MAX = BLOCKS_ROW_MAX * BLOCKS_COL_MAX;
+const cocos2d::Size MAP_PlateSize(720, 1280);
+const float MAP_TouchSensitivity = 5.f;		// for level button
+
+const float	GAMEPLAY_BlockWidth  = 100.f;
+const float GAMEPLAY_BlockHeight = 100.f;
+const int   GAMEPLAY_BlocksRowMax = 6;
+const int   GAMEPLAY_BlocksColMax = 6;
+const int   GAMEPLAY_BaseScore = 10;
+const int	GAMEPLAY_FeverStep = 7;
+const float	GAMEPLAY_FeverDuration = 5.f;
+
+const unsigned int	STATS_PowersMax = 30;
+const long			STATS_ChargingDuration = 60;	// seconds
 
 // game
-const int   BASE_SCORE	= 10;
-const int	FEVER_MAX	= 7;
-const float	FEVER_DURATION = 5.f;
-const float PLAY_TIME	= 60.f;
 
 #endif
