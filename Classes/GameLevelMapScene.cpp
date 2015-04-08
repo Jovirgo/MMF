@@ -7,9 +7,13 @@
 //
 
 #include "GameLevelMapScene.h"
-#include "GamePlayScene.h"
+#include "ReadyScene.h"
 #include "GameResources.h"
 #include "GameData.h"
+#include "PlayerStats.h"
+#include "GameScoreMap.h"
+#include "GameSettings.h"
+#include "ShopScene.h"
 
 USING_NS_CC;
 
@@ -36,8 +40,34 @@ bool GameLevelMapScene::init()
 	scrollViewSize.height = winSize.height;
 	scrollView->setContentSize( scrollViewSize );
 	scrollView->jumpToBottom();
+	
+	initTopBar();
+
+	auto btnShop = dynamic_cast<ui::Button*>(_rootNode->getChildByName("BtnShop"));
+	btnShop->addClickEventListener([](Ref*){
+		Director::getInstance()->pushScene( ShopScene::create() );
+	});
+
+	GameSettings::getInstance()->playMusic( BgMusicMp3 );
     
     return bRet;
+}
+
+void GameLevelMapScene::initTopBar()
+{
+	auto topBar = _rootNode->getChildByName("StatsBar");
+
+	_coinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
+	_coinsText->retain();
+
+	_diamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
+	_diamondsText->retain();
+
+	_powersText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("PowersText"));
+	_powersText->retain();
+
+	_timerText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("TimerText"));
+	_timerText->retain();
 }
 
 void GameLevelMapScene::onEnter()
@@ -49,10 +79,12 @@ void GameLevelMapScene::onEnter()
 	// update high score
 	auto gData = GameData::getInstance();
 
-	if (_levelScoreMap[ gData->getLevelId() ] < gData->getScore())
-	{
-		_levelScoreMap[ gData->getLevelId() ] = gData->getScore();
-	}
+//	if (_levelScoreMap[ gData->getLevelId() ] < gData->getScore())
+//	{
+//		_levelScoreMap[ gData->getLevelId() ] = gData->getScore();
+//	}
+
+	auto scoreMap = GameScoreMap::getInstance();
 
 	// update level btn stats
 	for (auto iter = _levelBtns.begin(); iter != _levelBtns.end(); ++iter)
@@ -64,7 +96,7 @@ void GameLevelMapScene::onEnter()
 		if (levelId == 1)
 			// level 1 must be visibled
 		{
-			btn->setVisible(true); 
+			btn->setVisible(true);
 		}
 		else
 			// other level depend on last level
@@ -72,14 +104,15 @@ void GameLevelMapScene::onEnter()
 			int scoreGoal = 0;
 			sscanf( _levelInfoTable.getData(levelId-1, GameLevelInfoData::Field::ScoreGoal1), "%d", &scoreGoal);
 
-			if (_levelScoreMap[levelId-1] > scoreGoal)
-			{
-				btn->setVisible(true);
-			}
-			else
+//			if (_levelScoreMap[levelId-1] < scoreGoal)
+			if (scoreMap->getScoreWithGameLevel(levelId-1) < scoreGoal)
 			{
 				btn->setVisible(false);
 				continue;
+			}
+			else
+			{
+				btn->setVisible(true);
 			}
 		}
 
@@ -91,7 +124,8 @@ void GameLevelMapScene::onEnter()
 			int scoreGoal = 0;
 			sscanf( _levelInfoTable.getData(levelId, i+GameLevelInfoData::Field::ScoreGoal1), "%d", &scoreGoal);
 
-			if (scoreGoal <= _levelScoreMap[levelId])
+//			if (scoreGoal <= _levelScoreMap[levelId])
+			if (scoreGoal <= scoreMap->getScoreWithGameLevel(levelId))
 			{
 				star->setTexture( TextureCache::getInstance()->addImage( MAP_StarFull ));
 			}
@@ -101,10 +135,37 @@ void GameLevelMapScene::onEnter()
 			}
 		}
     }
+
+	// Stats bar
+	char szText[20];
+
+	snprintf(szText, 20, "%d",PlayerStats::getInstance()->getCoins());
+	_coinsText->setString(szText);
+	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
+	_diamondsText->setString(szText);
+	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getPowersByCalculate());
+	_powersText->setString(szText);
+
+	if (PlayerStats::getInstance()->isFullPower())
+	{
+		_timerText->setVisible(false);
+	}
+	else
+	{
+		int duration = PlayerStats::getInstance()->getRemainingChargingDur();
+		int min = duration / 60;
+		int sec = duration % 60;
+		snprintf(szText, 10, "%d:%02d", min, sec);
+		_timerText->setString(szText);
+	}
+
+	schedule( schedule_selector(GameLevelMapScene::updateForTimerText), 1.f);
 }
 
 void GameLevelMapScene::onExit()
 {
+	unschedule( schedule_selector(GameLevelMapScene::updateForTimerText));
+
 	Scene::onExit();
 }
 
@@ -174,6 +235,8 @@ void GameLevelMapScene::goToGamePlaySceneWithLevelId(int levelId)
 		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::Cols), "%d", &info.cols);
 		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::Time), "%d", &info.time);
 
+		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::BonusCoin), "%d", &info.bonusCoin);
+
 		for (int i = 0; i != 5; ++i)
 		{
 			sscanf(_levelInfoTable.getData(levelId, i+GameLevelInfoData::Field::Color1), "%d", info.color+i);
@@ -185,7 +248,7 @@ void GameLevelMapScene::goToGamePlaySceneWithLevelId(int levelId)
 			sscanf(_levelInfoTable.getData(levelId, i+GameLevelInfoData::Field::BonusTool1), "%d", info.bonusTool+i);
 		}
 
-		auto scene = GamePlayScene::create(info);
+		auto scene = ReadyScene::create(info);
 		Director::getInstance()->pushScene(scene);
 	}
 	else
@@ -210,7 +273,7 @@ void GameLevelMapScene::levelItemCallback(Ref* sender, ui::Widget::TouchEventTyp
 		{
 			auto pos = parent->convertToWorldSpace( button->getPosition());
 
-			if (pos.distance(_touchBeganPos) > MAP_TouchSensitivity)
+			if (pos.distance(_touchBeganPos) > TOUCH_Sensitivity)
 			{
 				button->setHighlighted(false);
 			}
@@ -228,10 +291,41 @@ void GameLevelMapScene::levelItemCallback(Ref* sender, ui::Widget::TouchEventTyp
 	}
 }
 
+void GameLevelMapScene::updateForTimerText(float dt)
+{
+	auto playerStats = PlayerStats::getInstance();
+
+	if (playerStats->isFullPower())
+	{
+		_timerText->setVisible(false);
+		return;
+	}
+	else
+	{
+		_timerText->setVisible(true);
+	}
+
+	// display
+	char szText[10];
+	
+	int duration = PlayerStats::getInstance()->getRemainingChargingDur();
+	int min = duration / 60;
+	int sec = duration % 60;
+	snprintf(szText, 10, "%d:%02d", min, sec);
+	_timerText->setString(szText);
+
+	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getPowersByCalculate());
+	_powersText->setString(szText);
+}
+
 GameLevelMapScene::~GameLevelMapScene()
 {
 	_levelBtns.erase(_levelBtns.begin(), _levelBtns.end());
-
+	
+    CC_SAFE_RELEASE(_timerText);
+    CC_SAFE_RELEASE(_coinsText);
+    CC_SAFE_RELEASE(_diamondsText);
+    CC_SAFE_RELEASE(_powersText);
     CC_SAFE_RELEASE(_rootNode);
 }
 

@@ -4,53 +4,77 @@
 #include "cocos2d.h"
 #include "GameConstant.h"
 
+#define	EVENT_IncreasePowers		"IncreasePowers"
+#define EVENT_DecreasePowersSuccess	"DecreasePowersSuccess"
+#define EVENT_DecreasePowersFailed	"DecreasePowersFailed"
+#define EVENT_IncreaseCoins			"IncreaseCoins"
+#define EVENT_DecreaseCoinsSuccess	"DecreaseCoinsSuccess"
+#define EVENT_DecreaseCoinsFailed	"DecreaseCoinsFailed"
+#define EVENT_IncreaseDiamonds		"IncreaseDiamonds"
+#define EVENT_DecreaseDiamondsSuccess	"DecreaseDiamondsSuccess"
+#define EVENT_DecreaseDiamondsFailed	"DecreaseDiamondsFailed"
+
 class PlayerStats	// Powers, Coins and Diamonds
 {
 public:
 	/**
 	* Powers
 	*/
-	unsigned int getPowers();
 
-	void increasePowers(unsigned int delta);
-	void decreasePowers(unsigned int delta);
+	int getPowersByCalculate();
+	int getPowers();
+
+	void increasePowers(int delta);
+	bool decreasePowers(int delta);
 
 	void setChargingSpeed(long duration);
-	long getChargingSpeed();
+	int  getChargingSpeed();
 
-	long getRemaingChargingDur();
+	int  getRemainingChargingDur();
+
+	void savePowerStats();
+	void loadPowerStats();
+
+	bool isFullPower() { return _powers == _powersMax; }
 	
-	CC_SYNTHESIZE(unsigned int, _powersMax, PowersMax);
+	CC_SYNTHESIZE(int, _powersMax, PowersMax);
 
 private:
-	unsigned int _powers;
+	int _chargingStart;
+	int _chargingDuration;		// duration of charging 1 power
 
-	long _chargingStart;
-	long _chargingDuration;		// duration of charging 1 power
+	int _powers;
 
 public:
 	/**
 	* Coins
 	*/
-	unsigned int getCoins() { return _coins; }
+	int getCoins() { return _coins; }
 
-	void increaseCoins(unsigned int delta) { _coins -= delta; /* save data */ }
-	void decreaseCoins(unsigned int delta) { _coins += delta; /* save data */ }
+	void increaseCoins(int delta);
+	bool decreaseCoins(int delta);
+
+	void saveCoinStats();
+	void loadCoinStats();
 
 private:
-	unsigned int _coins;
+	int _coins;
+
 
 public:
 	/**
 	* Diamonds
 	*/
-	unsigned int getDiamonds() { return _diamonds; }
+	int getDiamonds() { return _diamonds; }
 
-	void increaseCoins(unsigned int delta) { _diamonds += delta; /* save data */ }
-	void decreaseCoins(unsigned int delta) { _diamonds -= delta; /* save data */ }
+	void increaseDiamonds(int delta);
+	bool decreaseDiamonds(int delta);
+
+	void saveDiamondStats();
+	void loadDiamondStats();
 
 private:
-	unsigned int _diamonds;
+	int _diamonds;
 
 
 public:
@@ -58,14 +82,7 @@ public:
 private:
 	static PlayerStats*  _sInstance;
 
-	PlayerStats()
-	: _powersMax(0)
-	, _powers(0)
-	, _chargingStart(0)
-	, _chargingDuration(0)
-	, _coins(0)
-	, _diamonds(0)
-	{}
+	PlayerStats();
 };
 
 #endif	/* __NewFlipop_PlayerStats */

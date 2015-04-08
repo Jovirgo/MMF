@@ -56,7 +56,7 @@ public:
 	CC_SYNTHESIZE(int,	_levelId,	LevelId);
     
 private:
-    GameData(void);
+    GameData();
 };
 
 #endif /* defined(__NewFlipop__GameData__) */

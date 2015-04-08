@@ -1,6 +1,14 @@
 #include "PlayerStats.h"
+#include "LoadAndSaveDataForCocos2d.h"
 
 USING_NS_CC;
+	
+#define STATS_ChargingStartSaveKey		"ChargingStart"
+#define STATS_ChargingDurationSaveKey	"ChargingDuration"
+#define STATS_PowersSaveKey		"Powers"
+#define STATS_PowersMaxSaveKey	"PowersMax"
+#define STATS_CoinsSaveKey		"Coins"
+#define STATS_DiamondsSaveKey	"Diamonds"
 
 time_t getSystemCurTime()
 {
@@ -30,7 +38,7 @@ PlayerStats* PlayerStats::getInstance()
 	return _sInstance;
 }
 
-unsigned int PlayerStats::getPowers()
+int PlayerStats::getPowersByCalculate()
 {
 	if (0 != _chargingStart)
 	{	
@@ -41,7 +49,12 @@ unsigned int PlayerStats::getPowers()
 	return _powers;
 }
 
-void PlayerStats::increasePowers(unsigned int delta)
+int PlayerStats::getPowers()
+{
+	return _powers;
+}
+
+void PlayerStats::increasePowers(int delta)
 {
 	_powers += delta;
 
@@ -56,16 +69,31 @@ void PlayerStats::increasePowers(unsigned int delta)
 		_chargingStart += (delta*_chargingDuration);
 	}
 
-	// save data
+	savePowerStats();
+
+	auto director = Director::getInstance();
+	director->getEventDispatcher()->dispatchCustomEvent( EVENT_IncreasePowers );
 }
 
-void PlayerStats::decreasePowers(unsigned int delta)
+bool PlayerStats::decreasePowers(int delta)
 {
-	_powers -= delta;
-	
-	_chargingStart = getSystemCurTime();
+	auto director = Director::getInstance();
 
-	// save data
+	if (_powers < delta)
+	{
+		director->getEventDispatcher()->dispatchCustomEvent( EVENT_DecreasePowersFailed );
+		return false;
+	}
+	else
+	{
+		_powers -= delta;
+		_chargingStart = getSystemCurTime();
+		savePowerStats();
+
+		director->getEventDispatcher()->dispatchCustomEvent( EVENT_DecreasePowersSuccess );
+		return true;
+	}
+
 }
 
 void PlayerStats::setChargingSpeed(long duration)
@@ -78,17 +106,147 @@ void PlayerStats::setChargingSpeed(long duration)
 	{
 		_chargingDuration = duration;
 
-		// save data
+		savePowerStats();
 	}
 }
 
-long PlayerStats::getChargingSpeed()
+int PlayerStats::getChargingSpeed()
 {
 	return _chargingDuration;
 }
 
-long PlayerStats::getRemaingChargingDur()
+int PlayerStats::getRemainingChargingDur()
 {
-	long chargingEnd = _chargingStart + _chargingDuration * (_powersMax-_powers);
+	if (_chargingStart == 0)
+	{
+		return 0;
+	}
+
+	int chargingEnd = _chargingStart + _chargingDuration * (_powersMax-_powers);
 	return chargingEnd - getSystemCurTime();
+}
+
+void PlayerStats::savePowerStats()
+{
+	saveDataByKey_int(STATS_ChargingStartSaveKey, _chargingStart, true);
+	saveDataByKey_int(STATS_ChargingDurationSaveKey, _chargingDuration, true);
+	saveDataByKey_int(STATS_PowersSaveKey, _powers, true);
+	saveDataByKey_int(STATS_PowersMaxSaveKey, _powersMax, true);
+	saveDataFlush();
+}
+
+void PlayerStats::loadPowerStats()
+{
+	_chargingStart = loadDataByKey_int(STATS_ChargingStartSaveKey, true);
+	_chargingDuration = loadDataByKey_int(STATS_ChargingDurationSaveKey, true);
+	_powers = loadDataByKey_int(STATS_PowersSaveKey, true);
+	_powersMax = loadDataByKey_int(STATS_PowersMaxSaveKey, true);
+}
+
+void PlayerStats::increaseCoins(int delta) 
+{ 
+	_coins += delta;
+	saveCoinStats();
+
+	auto director = Director::getInstance();
+	director->getEventDispatcher()->dispatchCustomEvent( EVENT_IncreaseCoins );
+}
+
+bool PlayerStats::decreaseCoins(int delta) 
+{
+	auto director = Director::getInstance();
+
+	if (_coins < delta)
+	{
+		director->getEventDispatcher()->dispatchCustomEvent( EVENT_DecreaseCoinsFailed );
+		return false;
+	}
+	else
+	{
+		_coins -= delta; 
+		saveCoinStats();
+
+		director->getEventDispatcher()->dispatchCustomEvent( EVENT_DecreaseCoinsSuccess );
+		return true;
+	}
+}
+
+void PlayerStats::saveCoinStats()
+{
+	saveDataByKey_int(STATS_CoinsSaveKey, _coins, true);
+	saveDataFlush();
+}
+
+void PlayerStats::loadCoinStats()
+{
+	_coins = loadDataByKey_int(STATS_CoinsSaveKey, true);
+}
+
+void PlayerStats::increaseDiamonds(int delta) 
+{ 
+	_diamonds += delta; 
+	saveDiamondStats();
+
+	auto director = Director::getInstance();
+	director->getEventDispatcher()->dispatchCustomEvent( EVENT_IncreaseDiamonds );
+}
+
+bool PlayerStats::decreaseDiamonds(int delta)
+{
+	auto director = Director::getInstance();
+
+	if (_diamonds < delta)
+	{
+		director->getEventDispatcher()->dispatchCustomEvent( EVENT_DecreaseDiamondsFailed );
+		return false;
+	}
+	else
+	{
+		_diamonds -= delta;
+		saveDiamondStats();
+
+		director->getEventDispatcher()->dispatchCustomEvent( EVENT_DecreaseDiamondsSuccess );
+		return true;
+	}
+}
+
+void PlayerStats::saveDiamondStats()
+{
+	saveDataByKey_int(STATS_DiamondsSaveKey, _diamonds, true);
+	saveDataFlush();
+}
+
+void PlayerStats::loadDiamondStats()
+{
+	_diamonds = loadDataByKey_int(STATS_DiamondsSaveKey, true);
+}
+
+PlayerStats::PlayerStats()
+	: _powersMax(STATS_PowersMax)
+	, _powers(_powersMax)
+	, _chargingStart(0)
+	, _chargingDuration(STATS_ChargingDuration)
+	, _coins(0)
+	, _diamonds(0)
+{
+	const char* haveSavedPlayerStats = "HaveSavedPlayerStats";
+
+	if (loadDataByKey_bool( haveSavedPlayerStats ))
+	{
+		loadPowerStats();
+		loadCoinStats();
+		loadDiamondStats();
+	}
+	else
+	{
+		saveDataByKey_bool( haveSavedPlayerStats , true);
+		
+		savePowerStats();
+		saveCoinStats();
+		saveDiamondStats();
+	}
+
+	// just for test
+//	_diamonds = 0;
+//	_coins = 0;
 }

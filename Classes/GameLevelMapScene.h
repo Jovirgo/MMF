@@ -20,6 +20,7 @@ public:
     CREATE_FUNC(GameLevelMapScene);
     
     virtual bool init();
+	void initTopBar();
 
 	virtual void onEnter();
 	virtual void onExit();
@@ -48,17 +49,29 @@ private:
     // Map height
     float   _innerHeight;
 
+private:
+	void updateForTimerText(float dt);
+
+	cocos2d::ui::TextBMFont*	_timerText;
+	cocos2d::ui::TextBMFont*	_coinsText;
+	cocos2d::ui::TextBMFont*	_diamondsText;
+	cocos2d::ui::TextBMFont*	_powersText;
 
 private:
     GameLevelInfoData _levelInfoTable;
 
-	std::map<int, int> _levelScoreMap;
+	// level scores
+//	std::map<int, int> _levelScoreMap;
 
 private:
     GameLevelMapScene()
     : _rootNode(nullptr)
     , _levelCount(0)
     , _innerHeight(0.f)
+	, _timerText(nullptr)
+	, _coinsText(nullptr)
+	, _diamondsText(nullptr)
+	, _powersText(nullptr)
     {
 	}
     

@@ -14,16 +14,6 @@
 #include "ui/CocosGUI.h"
 #include "NumberCountingLabel.h"
 
-// event id
-#define EVENT_FeverDecrease	"FeverDecreaseEvent"
-#define EVENT_FeverIncrease	"FeverIncreaseEvent"
-
-#define EVENT_PauseTimer	"PauseTimerEvent"
-#define EVENT_ResumeTimer	"ResumeTimerEvent"
-
-#define EVENT_PutScore		"PutScoreEvent"
-#define EVENT_GetScore		"GetScoreEvent"
-#define UDATA_PutScore		"%d,%d,%.1f,%.1f"
 
 
 struct GamePlayInfo

@@ -13,6 +13,7 @@
 #include "GameData.h"
 #include "GamePlayScene.h"
 #include "AnimationReaderForCocos2d.h"
+#include "GameSettings.h"
 
 USING_NS_CC;
 
@@ -244,10 +245,12 @@ void GameBlocksManager::openTheCard(GameCard* card)
 		if (isMatch(_1stCard, _2ndCard))
 		{
 			pairingSucceed();
+			GameSettings::getInstance()->playSound( GAMEPLAY_CorrectMp3 );
 		}
 		else
 		{
 			pairingFailed();
+			GameSettings::getInstance()->playSound( GAMEPLAY_IncorrectMp3 );
 		}
 	}
 }

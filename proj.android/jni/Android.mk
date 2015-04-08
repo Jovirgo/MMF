@@ -11,20 +11,26 @@ LOCAL_MODULE := cocos2dcpp_shared
 LOCAL_MODULE_FILENAME := libcocos2dcpp
 
 LOCAL_SRC_FILES := hellocpp/main.cpp \
+                   ../../Classes/AnimationReaderForCocos2d.cpp \
                    ../../Classes/AppDelegate.cpp \
+                   ../../Classes/CsvFileForCocos2d.cpp \
                    ../../Classes/GameBlock.cpp \
                    ../../Classes/GameBlocksCountManager.cpp \
                    ../../Classes/GameBlocksManager.cpp \
                    ../../Classes/GameData.cpp \
-                   ../../Classes/GamePlayScene.cpp \
-                   ../../Classes/GameZoomMenuItem.cpp \
-                   ../../Classes/NumberCountingLabel.cpp \
-                   ../../Classes/TitleScene.cpp \
-                   ../../Classes/AnimationReaderForCocos2d.cpp \
-                   ../../Classes/ResultScene.cpp  \
                    ../../Classes/GameLevelMapScene.cpp \
-                   ../../Classes/CsvFileForCocos2d.cpp
-
+                   ../../Classes/GamePlayScene.cpp \
+                   ../../Classes/GameScoreMap.cpp \
+                   ../../Classes/GameSettings.cpp \
+                   ../../Classes/GameZoomMenuItem.cpp \
+                   ../../Classes/LoadAndSaveDataForCocos2d.cpp \
+                   ../../Classes/NumberCountingLabel.cpp \
+                   ../../Classes/PlayerStats.cpp \
+                   ../../Classes/ReadyScene.cpp \
+                   ../../Classes/ResultScene.cpp \
+                   ../../Classes/ShopScene.cpp \
+                   ../../Classes/TitleScene.cpp \
+                   
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../Classes
 
 # _COCOS_HEADER_ANDROID_BEGIN

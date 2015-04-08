@@ -13,6 +13,7 @@
 #include "GameData.h"
 #include "GameConstant.h"
 #include "ResultScene.h"
+#include "GameScoreMap.h"
 #include "GameBlocksCountManager.h"
 
 USING_NS_CC;
@@ -334,7 +335,15 @@ void GamePlayScene::updateForPlayTimer(float dt)
     {
         _playTimer = 0.f;
 
-        Director::getInstance()->replaceScene(ResultScene::create());
+		auto scoreMap = GameScoreMap::getInstance();
+		auto gData = GameData::getInstance();
+
+		if (scoreMap->getScoreWithGameLevel(gData->getLevelId())<gData->getScore())
+		{
+			scoreMap->setScoreWithGameLevel(gData->getLevelId(), gData->getScore());
+		}
+
+        Director::getInstance()->replaceScene( ResultScene::create(_gamePlayInfo) );
     }
     else
     {

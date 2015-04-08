@@ -43,8 +43,6 @@ void saveDataByKey_int(const char * szKey, int iData, bool bEncryption)
     {
         userDefault->setIntegerForKey(szKey, iData);
     }
-    
-    userDefault->flush();
 }
 
 void saveDataByKey_float(const char * szKey, float fData, bool bEncryption)
@@ -67,8 +65,6 @@ void saveDataByKey_float(const char * szKey, float fData, bool bEncryption)
     {
         userDefault->setFloatForKey(szKey, fData);
     }
-    
-    userDefault->flush();
 }
 
 void saveDataByKey_bool(const char * szKey, bool bData, bool bEncryption)
@@ -90,8 +86,6 @@ void saveDataByKey_bool(const char * szKey, bool bData, bool bEncryption)
     {
         userDefault->setBoolForKey(szKey, bData);
     }
-    
-    userDefault->flush();
 }
 
 void saveDataByKey_string(const char * szKey, std::string strData, bool bEncryption)
@@ -111,8 +105,11 @@ void saveDataByKey_string(const char * szKey, std::string strData, bool bEncrypt
     {
         userDefault->setStringForKey(szKey, strData);
     }
-    
-    userDefault->flush();
+}
+
+void saveDataFlush()
+{
+	CCUserDefault::sharedUserDefault()->flush();
 }
 
 

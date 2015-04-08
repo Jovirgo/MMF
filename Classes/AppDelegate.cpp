@@ -2,7 +2,8 @@
 
 #include "GamePlayScene.h"
 #include "TitleScene.h"
-#include "GameLevelMapScene.h"
+#include "ShopScene.h"
+#include "ResultScene.h"
 
 USING_NS_CC;
 
@@ -47,21 +48,21 @@ bool AppDelegate::applicationDidFinishLaunching() {
     
     // set design resolution size auto adapt to 960x640 or 640x960
     Size dvSize = glview->getFrameSize();
-    Size dfSize = dvSize.width > dvSize.height ? Size(1080, 720) : Size(720, 1080);
+    Size dfSize = dvSize.width > dvSize.height ? Size(1280, 720) : Size(720, 1280);
     
     float dfcmp = dfSize.width / dfSize.height; //width / height
     float dvcmp = dvSize.width / dvSize.height;
     
     float rate = 0;
     
-    /*if (dvcmp > dfcmp)
+    if (dvcmp > dfcmp)
     {
         rate = dfSize.height / dvSize.height;
     }
-    else*/
-    {
-        rate = dfSize.width / dvSize.width;
-    }
+    //else
+    //{
+    //    rate = dfSize.width / dvSize.width;
+    //}
     
     CCLOG("rate = %f", rate);
     
@@ -70,9 +71,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
 	// set design resolution size end.
     
     // create a scene. it's an autorelease object
-	auto scene = Scene::create();
-	auto layer = TitleScene::create();
-	scene->addChild(layer);
+	auto scene = TitleScene::create();
 
     // run
     director->runWithScene(scene);
