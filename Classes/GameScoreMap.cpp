@@ -48,7 +48,7 @@ void GameScoreMap::loadScoreMap()
 		int score = loadDataByKey_int(szKey, true);
 		if (score == 0)
 		{
-			break;
+			break;	// no data
 		}
 		else
 		{

@@ -3,6 +3,7 @@
 #include "GameZoomMenuItem.h"
 #include "PlayerStats.h"
 #include "GamePlayScene.h"
+#include "GameScoreMap.h"
 
 USING_NS_CC;
 
@@ -55,11 +56,55 @@ void ReadyScene::initCocostudioRootNode()
 	auto targetText = _rootNode->getChildByName("TargetText");
 	dynamic_cast<ui::TextBMFont*>(targetText)->setString(szText);
 
+	// stars bar
+	auto starsBar = _rootNode->getChildByName("StarsBar");
+	auto scoreMap = GameScoreMap::getInstance();
+
+	for (int i = 0; i != 3; ++i)
+	{
+		auto star = dynamic_cast<Sprite*>( starsBar->getChildByTag(i));
+
+		if (_gamePlayInfo.scoreGoal[i] <= scoreMap->getScoreWithGameLevel(_gamePlayInfo.levelId))
+		{
+			star->setTexture( TextureCache::getInstance()->addImage( MAP_StarFull ));
+		}
+		else
+		{
+			star->setTexture( TextureCache::getInstance()->addImage( MAP_StarEmpty ));
+		}
+	}
+
 	auto btnExit = dynamic_cast<ui::Button*>( _rootNode->getChildByName("BtnExit") );
 	btnExit->addClickEventListener([](Ref*){
 		// may be change
 		Director::getInstance()->popScene();
 	});
+
+	// buy tools button
+	for (int i = 0; i != 4; ++i)
+	{
+		char szName[15];
+		snprintf(szName, 15, "BtnTool%d", i);
+
+		auto btn = dynamic_cast<ui::Button*>( _rootNode->getChildByName(szName));
+		btn->addClickEventListener([i, this](Ref*){
+			
+			_isBuyTool[i] = !_isBuyTool[i];
+
+			auto stats = PlayerStats::getInstance();
+
+			if (_isBuyTool[i] && stats->decreaseCoins(100))	// 100 coins
+			{
+				stats->increaseToolCountWithType(i, 1);
+			}
+
+			if (!_isBuyTool[i])
+			{
+				stats->increaseCoins(100);
+				stats->decreaseToolCountWithType(i, 1);
+			}
+		});
+	}
 
 	// btn tool ...
 }
@@ -99,11 +144,34 @@ void ReadyScene::initTopBar()
 {
 	auto topBar = _rootNode->getChildByName("StatsBar");
 
-	_coinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
-	_coinsText->retain();
+	
+	// coins
+	auto oldCoinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
+    oldCoinsText->removeFromParent();
+    
+    _coinsText = NumberCountingLabel::create();
+    _coinsText->retain();
+    _coinsText->setPosition(oldCoinsText->getPosition());
+    _coinsText->setAnchorPoint(oldCoinsText->getAnchorPoint());
+	_coinsText->setScale(oldCoinsText->getScale());
+	_coinsText->setFntFile("fonts/Stats.fnt");
+    _coinsText->setCountingDuration(0.2f);
+	_coinsText->setScale(oldCoinsText->getScale());
+    topBar->addChild(_coinsText, oldCoinsText->getZOrder(), oldCoinsText->getName());
 
-	_diamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
-	_diamondsText->retain();
+	
+	// diamonds
+	auto oldDiamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
+    oldDiamondsText->removeFromParent();
+    
+    _diamondsText = NumberCountingLabel::create();
+    _diamondsText->retain();
+    _diamondsText->setPosition(oldDiamondsText->getPosition());
+    _diamondsText->setAnchorPoint(oldDiamondsText->getAnchorPoint());
+	_diamondsText->setScale(oldDiamondsText->getScale());
+	_diamondsText->setFntFile("fonts/Stats.fnt");
+    _diamondsText->setCountingDuration(0.2f);
+    topBar->addChild(_diamondsText, oldDiamondsText->getZOrder(), oldDiamondsText->getName());
 
 	_powersText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("PowersText"));
 	_powersText->retain();
@@ -136,21 +204,23 @@ void ReadyScene::onEnter()
 {
 	Scene::onEnter();
 
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
-	_coinsText->setString(szText);
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
-	_diamondsText->setString(szText);
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getPowersByCalculate());
+	// stats
+	auto stats = PlayerStats::getInstance();
+
+	_coinsText->setCurrNumber(stats->getCoins());
+	_diamondsText->setCurrNumber(stats->getDiamonds());
+
+	char szText[10];
+	snprintf(szText, 20, "%d", stats->getPowersByCalculate());
 	_powersText->setString(szText);
 
-	if (PlayerStats::getInstance()->isFullPower())
+	if (stats->isFullPower())
 	{
 		_timerText->setVisible(false);
 	}
 	else
 	{
-		int duration = PlayerStats::getInstance()->getRemainingChargingDur();
+		int duration = stats->getRemainingChargingDur();
 		int min = duration / 60;
 		int sec = duration % 60;
 		snprintf(szText, 10, "%d:%02d", min, sec);
@@ -158,8 +228,8 @@ void ReadyScene::onEnter()
 	}
 
 	_eventDispatcher->addCustomEventListener(EVENT_IncreasePowers, CC_CALLBACK_1(ReadyScene::adjustIncreasePowersEvent, this));
-	_eventDispatcher->addCustomEventListener(EVENT_DecreasePowersSuccess, CC_CALLBACK_1(ReadyScene::adjustIncreasePowersEvent, this));
-	_eventDispatcher->addCustomEventListener(EVENT_IncreaseCoins, CC_CALLBACK_1(ReadyScene::adjustDecreasePowersEvent, this));
+	_eventDispatcher->addCustomEventListener(EVENT_DecreasePowersSuccess, CC_CALLBACK_1(ReadyScene::adjustDecreasePowersEvent, this));
+	_eventDispatcher->addCustomEventListener(EVENT_IncreaseCoins, CC_CALLBACK_1(ReadyScene::adjustIncreaseCoinsEvent, this));
 	_eventDispatcher->addCustomEventListener(EVENT_DecreaseCoinsSuccess, CC_CALLBACK_1(ReadyScene::adjustDecreaseCoinsEvent, this));
 	_eventDispatcher->addCustomEventListener(EVENT_IncreaseDiamonds, CC_CALLBACK_1(ReadyScene::adjustIncreaseDiamondsEvent, this));
 	_eventDispatcher->addCustomEventListener(EVENT_DecreaseDiamondsSuccess, CC_CALLBACK_1(ReadyScene::adjustDecreaseDiamondsEvent, this));
@@ -196,34 +266,26 @@ void ReadyScene::menuItemCallback(Ref* sender)
 
 void ReadyScene::adjustIncreaseCoinsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
-
-	_coinsText->setString(szText);
+	_coinsText->setIsIncreased(true);
+	_coinsText->setGoalNumber( PlayerStats::getInstance()->getCoins());
 }
 
 void ReadyScene::adjustDecreaseCoinsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
-
-	_coinsText->setString(szText);
+	_coinsText->setIsIncreased(false);
+	_coinsText->setGoalNumber( PlayerStats::getInstance()->getCoins());
 }
 
 void ReadyScene::adjustIncreaseDiamondsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
-
-	_diamondsText->setString(szText);
+	_diamondsText->setIsIncreased(true);
+	_diamondsText->setGoalNumber( PlayerStats::getInstance()->getDiamonds());
 }
 
 void ReadyScene::adjustDecreaseDiamondsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
-
-	_diamondsText->setString(szText);
+	_diamondsText->setIsIncreased(false);
+	_diamondsText->setGoalNumber( PlayerStats::getInstance()->getDiamonds());
 }
 
 void ReadyScene::adjustIncreasePowersEvent(EventCustom* event)
@@ -276,6 +338,10 @@ ReadyScene::ReadyScene()
 	, _diamondsText(nullptr)
 	, _powersText(nullptr)
 {
+	for (int i = 0; i != 4; ++i)
+	{
+		_isBuyTool[i] = false;
+	}
 }
 
 ReadyScene::~ReadyScene()

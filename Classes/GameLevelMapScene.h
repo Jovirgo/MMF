@@ -13,6 +13,7 @@
 #include "cocostudio/Cocostudio.h"
 #include "ui/CocosGUI.h"
 #include "GameLevelInfoData.h"
+#include "NumberCountingLabel.h"
 
 class GameLevelMapScene: public cocos2d::Scene
 {
@@ -21,6 +22,7 @@ public:
     
     virtual bool init();
 	void initTopBar();
+	void initScrollMap();
 
 	virtual void onEnter();
 	virtual void onExit();
@@ -53,9 +55,9 @@ private:
 	void updateForTimerText(float dt);
 
 	cocos2d::ui::TextBMFont*	_timerText;
-	cocos2d::ui::TextBMFont*	_coinsText;
-	cocos2d::ui::TextBMFont*	_diamondsText;
 	cocos2d::ui::TextBMFont*	_powersText;
+	NumberCountingLabel*	_coinsText;
+	NumberCountingLabel*	_diamondsText;
 
 private:
     GameLevelInfoData _levelInfoTable;

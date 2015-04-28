@@ -5,6 +5,7 @@
 #include "ui/CocosGUI.h"
 #include "cocostudio/Cocostudio.h"
 #include "GamePlayScene.h"
+#include "NumberCountingLabel.h"
 
 class ReadyScene: public cocos2d::Scene
 {
@@ -34,9 +35,11 @@ private:
 	void updateForTimerText(float dt);
 
 	cocos2d::ui::TextBMFont*	_timerText;
-	cocos2d::ui::TextBMFont*	_coinsText;
-	cocos2d::ui::TextBMFont*	_diamondsText;
 	cocos2d::ui::TextBMFont*	_powersText;
+	NumberCountingLabel*		_coinsText;
+	NumberCountingLabel*		_diamondsText;
+
+	bool	_isBuyTool[4];
 	
 private:
 	cocos2d::Node* _rootNode;

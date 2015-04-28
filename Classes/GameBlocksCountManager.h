@@ -28,10 +28,12 @@ public:
 public:
     void addBlockTypeToPriorityQueue(int type)
     {
-        CCASSERT(type > TYPE_NULL && type < TYPE_TOTAL, "");
+        CCASSERT(type > GB_NULL && type < GB_TypeCount, "");
         
         _priorityBlockTypeQueue.push_back(type);
     }
+
+	void setBlockTypeWithRowsAndColumns(int rows, int cols);
     
 private:
     std::list<int> _priorityBlockTypeQueue;
@@ -53,14 +55,14 @@ public:
 	int getTotalCountWithRemaining();
 
 private:
-    int	_totalBlocksCount[TYPE_TOTAL];
-    int _clearBlocksCount[TYPE_TOTAL];
+    int	_totalBlocksCount[GB_TypeCount];
+    int _clearBlocksCount[GB_TypeCount];
 	
 public:
 	void setTypeLaunched(int type, bool var);
 
 private:
-	bool _isTypeLaunched[TYPE_TOTAL];
+	bool _isTypeLaunched[GB_TypeCount];
 
 	int  _typeLaunchedCount;
     

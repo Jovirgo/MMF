@@ -221,6 +221,91 @@ void PlayerStats::loadDiamondStats()
 	_diamonds = loadDataByKey_int(STATS_DiamondsSaveKey, true);
 }
 
+int PlayerStats::getToolCountWithType(int type)
+{
+	CCASSERT(type >= 0, "");
+
+	if (type >= TotalTypes)
+	{
+		return 0;
+	}
+	else
+	{
+		return _toolCount[type];
+	}
+}
+
+void PlayerStats::increaseToolCountWithType(int type, int delta)
+{
+	_toolCount[type] += delta; 
+	saveToolStatsWithType(type);
+
+	EventCustom event( EVENT_IncreaseTools );
+	event.setUserData(&type);
+
+	auto director = Director::getInstance();
+	director->getEventDispatcher()->dispatchEvent( &event);
+}
+
+bool PlayerStats::decreaseToolCountWithType(int type, int delta)
+{
+	CCASSERT(type >= 0 && type < TotalTypes, "");
+
+	auto eventDispatcher = Director::getInstance()->getEventDispatcher();
+
+	if (_toolCount[type] < delta)
+	{
+		EventCustom event( EVENT_DecreaseToolsFailed );
+		event.setUserData(&type);
+		eventDispatcher->dispatchEvent( &event);
+		return false;
+	}
+	else
+	{
+		_toolCount[type] -= delta;
+		saveToolStatsWithType(type);
+
+		EventCustom event( EVENT_DecreaseToolsSuccess );
+		event.setUserData(&type);
+		eventDispatcher->dispatchEvent( &event);
+		return true;
+	}
+}
+
+void PlayerStats::saveToolStatsWithType(int type)
+{
+	char szType[10];
+	snprintf(szType, 10, "Tool%d", type);
+
+	saveDataByKey_int(szType, _toolCount[type], true);
+	saveDataFlush();
+}
+
+void PlayerStats::saveToolStats()
+{
+	char szType[10];
+
+	for (int i = 0; i != TotalTypes; ++i)
+	{
+		snprintf(szType, 10, "Tool%d", i);
+		saveDataByKey_int(szType, _toolCount[i], true);
+	}
+
+	saveDataFlush();
+}
+
+void PlayerStats::loadToolStats()
+{
+	char szType[10];
+
+	for (int i = 0; i != TotalTypes; ++i)
+	{
+		snprintf(szType, 10, "Tool%d", i);
+
+		_toolCount[i] = loadDataByKey_int(szType, true);
+	}
+}
+
 PlayerStats::PlayerStats()
 	: _powersMax(STATS_PowersMax)
 	, _powers(_powersMax)
@@ -231,11 +316,17 @@ PlayerStats::PlayerStats()
 {
 	const char* haveSavedPlayerStats = "HaveSavedPlayerStats";
 
+	for (int i = 0; i != TotalTypes; ++i)
+	{
+		_toolCount[i] = 0;
+	}
+
 	if (loadDataByKey_bool( haveSavedPlayerStats ))
 	{
 		loadPowerStats();
 		loadCoinStats();
 		loadDiamondStats();
+		loadToolStats();
 	}
 	else
 	{
@@ -244,6 +335,7 @@ PlayerStats::PlayerStats()
 		savePowerStats();
 		saveCoinStats();
 		saveDiamondStats();
+		saveToolStats();
 	}
 
 	// just for test

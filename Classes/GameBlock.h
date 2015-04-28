@@ -2,271 +2,193 @@
 //  GameBlock.h
 //  NewFlipop
 //
-//  Created by 欧洲 on 14/12/31.
+//  Created by OJO on 15/4/22.
 //
 //
-
 #ifndef __NewFlipop__GameBlock__
 #define __NewFlipop__GameBlock__
 
 #include "cocos2d.h"
-#include "GameConstant.h"
 
-//---------------------------------
-//
-// GameBlock
-//
-//---------------------------------
-
-// Block type
-enum
+enum GameBlockType
 {
-    TYPE_NULL = 0,
-    CARD_1,
-    CARD_2,
-    CARD_3,
-    CARD_4,
-    CARD_5,
-    CARD_6,
-//    CARD_7,
-    CARD_WILD,
-    TOOL_COIN,
-    TOOL_TIME,
-    TOOL_MULT,
-    TYPE_TOTAL,
+	GB_NULL = 0,
+
+	// Reversible
+	GB_Rvs1,
+	GB_Rvs2,
+	GB_Rvs3,
+	GB_Rvs4,
+	GB_Rvs5,
+
+	GB_TypeCount
 };
-
-bool IsGameCardType(int type);
-bool IsGameToolType(int type);
-
 
 class GameBlock: public cocos2d::Sprite
 {
-public:
-    static GameBlock* create(void);
-    
+public:	
+	static GameBlock* create();	// Create block with GB_NULL type
+
+
+
+public:	
+	/**
+	* Init
+	*/
     virtual bool initWithFile(const char* szFileName);
-    virtual bool initWithSpriteFrameName(const char* szFrameName);
-    
-    void  initGameBlock(void);
-    
+
+	void initGameBlock();
+
     virtual bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* event);
 //    virtual void onTouchEnded(cocos2d::Touch* touch, cocos2d::Event* event);
 //    virtual void onTouchEnded(cocos2d::Touch* touch, cocos2d::Event* event);
-    
-public:
-    void updateForFalling(float dt);
-    
-    bool isFalling(void) { return _isFalling; }
-    
-protected:
-    virtual void didFinishFalling(void);
-    
-    bool _isFalling;
-    
-public:
-    bool isTool(void) { return IsGameToolType(_type); }
-    bool isCard(void) { return IsGameCardType(_type); }
-    
-    int getType(void) const
-    {
-        return _type;
-    }
-    
-protected:
-    int _type;
-    
-public:
-	// removeFromBlocksMananger animation
-	virtual cocos2d::FiniteTimeAction* removeSelfAction();
 
-    void removeFromBlocksManager(void);
-    
+
+
+public:
+	/**
+	* Above & Below
+	*/
     CC_SYNTHESIZE_RETAIN(GameBlock*, _aboveBlock, AboveBlock);
     CC_SYNTHESIZE_RETAIN(GameBlock*, _belowBlock, BelowBlock);
 
-	CC_SYNTHESIZE(bool, _isTouchEnabled, TouchEnabled);
-	CC_SYNTHESIZE(bool, _isPaired,		 IsPaired);
-    
+    void removeFromBlockManager(void);
+
+
 public:
-    virtual void setFeverModeEnabled(bool enabled);
-    
+	/**
+	* Falling
+	*/
+	void updateForFalling(float dt);
+
+	bool isFalling() { return _isFalling; }
+
 protected:
-    GameBlock(int type);
-    
-    virtual ~GameBlock(void);
+	virtual void didFinishFalling();
+
+	bool _isFalling;
+
+
+public:
+	/**
+	* Type
+	*/
+	int getType() const
+	{ 
+		return _type; 
+	}
+
+private:
+	int _type;
+
+
+
+public:
+	/**
+	* Active
+	*/
+	bool  isActive() { return _isActive; }
+	void setActive(bool var);
+private:
+	bool _isActive;
+
+
+public:
+	// Touch enabled
+	CC_SYNTHESIZE(bool, _isTouchEnabled, TouchEnabled);
+
+	// Row
+	int getRowByPosition();	// >= 0
+	int getRowByRelation();	// >= 0
+
+	// Fever mode
+    virtual void setFeverModeEnabled(bool enabled);
+
+	// Action before removself
+	virtual cocos2d::FiniteTimeAction* removeSelfAction();
+
+
+protected:
+	GameBlock(int type);
+	virtual ~GameBlock();
 };
 
 
 
-
-
-
-//---------------------------------
-//
-// GameCard
-//
-//---------------------------------
-class GameCard: public GameBlock
+class ReversibleBlock: public GameBlock
 {
 public:
-    static GameCard* createWithType(int type);
+    static ReversibleBlock* createWithType(int type);
     
     virtual bool init(void);
-    
-    virtual bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* event);
-//    virtual void onTouchEnded(cocos2d::Touch* touch, cocos2d::Event* event);
-//    virtual void onTouchEnded(cocos2d::Touch* touch, cocos2d::Event* event);
-    
-    virtual void setFeverModeEnabled(bool enabled);
 
-	virtual cocos2d::FiniteTimeAction* removeSelfAction();
-    
-public:
-    void showObvSideColor();
-    void hideObvSideColor();
-    
-    void showObvSideColorByWildCard();
-    
-protected:
-    void didShowObvSideColorFinish(void);
-    
-    cocos2d::FiniteTimeAction* showObvSideAction();
-    cocos2d::FiniteTimeAction* hideObvSideAction();
-        
-    void ShowObvSideEnabledTrue(void);
-    void ShowObvSideEnabledFalse(void);
-    
-    CC_PROPERTY(bool,	_isShowObvSideEnabled,	ShowObvSideEnabled);
-    
-public:
-    void showRevSideHint(void);
-    void hideRevSideHint(void);
-    
-protected:
-    CC_SYNTHESIZE(bool,	_isShowRevHintEnabled,	ShowRevHintEnabled);
+
 
 public:
-	void showRevSideHintWithDuration(float duration);
+	/**
+	* Flip to Obv|Rev
+	*/
+	void flipToObvSideAndRemoveSelf();
+
+    void flipToObvSide();
+    void flipToRevSide();
+
+	void setFlipToObvSideEnabled(bool var);
+
+private:
+	void callBlockManagerToMatch();
+    
+    cocos2d::FiniteTimeAction* flipToObvSideAction();
+    cocos2d::FiniteTimeAction* flipToRevSideAction();
+
+	bool _isFlipToObvSideEnabled;
+
+
+	
+public:
+	/**
+	* Hint at reverse side
+	*/
+	void showRevSideHintWithDuration(float duration);			// control by duration
 
 protected:
     virtual void updateForRevSideHint(float dt);
+	void updateForLaunchRevSideHint(float dt);
+	void updateForFinishRevSideHint(float dt);
 
-    bool	_isShowRevSideHint;
-    
     float	_showRevSideHintDuration;
-    
+
+public:
+	void showRevSideHint() { _showRevSideHintEnabled = true;  }	// control by user
+	void hideRevSideHint() { _showRevSideHintEnabled = false; }	// control by user
+
 protected:
-    GameCard(int type) : GameBlock(type)
-    , _isShowObvSideEnabled(false)
-    , _isShowRevHintEnabled(false)
-	, _isShowRevSideHint(false)
-    , _showRevSideHintDuration(0.f)
+	bool	_showRevSideHintEnabled;
+
+
+
+public:
+	/**
+	* GameBlock
+	*/
+    virtual bool onTouchBegan(cocos2d::Touch* touch, cocos2d::Event* event);
+
+    virtual void setFeverModeEnabled(bool enabled);
+
+	virtual cocos2d::FiniteTimeAction* removeSelfAction();
+
+
+
+private:
+    ReversibleBlock(int type) 
+		: GameBlock(type)
+		, _isFlipToObvSideEnabled(false)
+		, _showRevSideHintDuration(0.f)
+		, _showRevSideHintEnabled(false)
     {
-        CCASSERT(isCard(), "");
     }
 };
 
 
-
-
-//---------------------------------
-//
-// WildCard
-//
-//---------------------------------
-class WildCard: public GameCard
-{
-public:
-    CREATE_FUNC(WildCard);
-    
-    virtual bool init(void);
-    
-    virtual void setShowObvSideEnabled(bool var);
-    
-    virtual void updateForRevSideHint(float dt) {}
-    
-protected:
-    WildCard(void) : GameCard(CARD_WILD){}
-};
-
-
-
-
-//---------------------------------
-//
-// GameTool
-//
-//---------------------------------
-class GameTool: public GameBlock
-{
-protected:
-    GameTool(int type) : GameBlock(type) { CCASSERT(isTool(), ""); }
-};
-
-
-
-
-//---------------------------------
-//
-// ToolCoin
-//
-//---------------------------------
-class ToolCoin: public GameTool
-{
-public:
-    CREATE_FUNC(ToolCoin);
-    
-    virtual bool init(void);
-    
-protected:
-    ToolCoin(void)
-    : GameTool(TOOL_COIN)
-    {}
-};
-
-
-
-
-
-//---------------------------------
-//
-// ToolMult
-//
-//---------------------------------
-class ToolMult: public GameTool
-{
-public:
-    CREATE_FUNC(ToolMult);
-    
-    virtual bool init(void);
-    
-protected:
-    ToolMult(void)
-    : GameTool(TOOL_MULT)
-    {}
-};
-
-
-
-
-
-//---------------------------------
-//
-// ToolTime
-//
-//---------------------------------
-class ToolTime: public GameTool
-{
-public:
-    CREATE_FUNC(ToolTime);
-    
-    virtual bool init(void);
-    
-protected:
-    ToolTime(void)
-    : GameTool(TOOL_TIME)
-    {}
-};
 
 #endif /* defined(__NewFlipop__GameBlock__) */

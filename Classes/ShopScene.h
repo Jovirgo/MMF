@@ -4,6 +4,7 @@
 #include "cocos2d.h"
 #include "ui/cocosGUI.h"
 #include "cocostudio/Cocostudio.h"
+#include "NumberCountingLabel.h"
 
 class ShopScene: public cocos2d::Scene
 {
@@ -17,9 +18,9 @@ public:
 
 	// initial shop
 	void initShop();
-	void initGiftsShop();
-	void initToolsShop();
-	void initDiamondsShop();
+	cocos2d::Node* createGiftsShopNode();
+	cocos2d::Node* createToolsShopNode();
+	cocos2d::Node* createDiamondsShopNode();
 
 	virtual void onEnter();
 	virtual void onExit();
@@ -65,8 +66,8 @@ private:
 
 	void updateForTimerText(float dt);
 
-	cocos2d::ui::TextBMFont*	_coinsText;
-	cocos2d::ui::TextBMFont*	_diamondsText;
+	NumberCountingLabel*		_coinsText;
+	NumberCountingLabel*		_diamondsText;
 	cocos2d::ui::TextBMFont*	_powersText;
 	cocos2d::ui::TextBMFont*	_timerText;
 

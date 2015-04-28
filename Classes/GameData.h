@@ -43,7 +43,7 @@ public:
     
     int getScoreDelta()
     {
-        return GAMEPLAY_BaseScore * _combo * _multiply;
+        return GAMEPLAY_BaseScore + (_combo-1) * 3 * _multiply;
     }
 
 	void resetGameDataInLevel(int levelID);

@@ -39,6 +39,8 @@ bool ResultScene::init(const GamePlayInfo& levelInfo)
     _rootNode->setPosition( Vec2(winSize.width /2, 
 								 winSize.height/2));
 	
+	initGamePlayInfo(levelInfo);
+
 	initMenu();
 	initTopBar();
 
@@ -106,7 +108,6 @@ bool ResultScene::init(const GamePlayInfo& levelInfo)
 	default: break;
 	}
 
-	initGamePlayInfo(levelInfo);
 
 	return bRet;
 }
@@ -193,21 +194,23 @@ void ResultScene::onEnter()
 {
 	Scene::onEnter();
 
+	auto stats = PlayerStats::getInstance();
+
 	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
+	snprintf(szText, 20, "%d", stats->getCoins());
 	_coinsText->setString(szText);
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
+	snprintf(szText, 20, "%d", stats->getDiamonds());
 	_diamondsText->setString(szText);
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getPowersByCalculate());
+	snprintf(szText, 20, "%d", stats->getPowersByCalculate());
 	_powersText->setString(szText);
 
-	if (PlayerStats::getInstance()->isFullPower())
+	if (stats->isFullPower())
 	{
 		_timerText->setVisible(false);
 	}
 	else
 	{
-		int duration = PlayerStats::getInstance()->getRemainingChargingDur();
+		int duration = stats->getRemainingChargingDur();
 		int min = duration / 60;
 		int sec = duration % 60;
 		snprintf(szText, 10, "%d:%02d", min, sec);

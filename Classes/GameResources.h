@@ -11,7 +11,7 @@
 
 #define BgMusicMp3			"Sound/BgMusic.wav"
 #define BgMusicFeverMp3		"Sound/BgMusicFever.wav"
-#define BtnClickMp3			"Sound/ButtonClick.mp3"
+#define BtnClickMp3			"Sound/`ButtonClick.mp3"
 
 #define TITLE_Csb			"Title/Title.csb"
 #define TITLE_BtnPlay		"Title/Play.png"
@@ -68,6 +68,12 @@
 #define READY_Csb	"ReadyAndResult/Ready.csb"
 #define READY_StartEnabled	"ReadyAndResult/BtnStart1.png"
 #define READY_StartDisabled	"ReadyAndResult/BtnStart2.png"
+
+#define BAG_Csb	"Bag/Bag.csb"
+#define BAG_ItemIconMoreTime	"Shop/ToolsIcon2.png"
+#define BAG_ItemIconAutoMatch	"Shop/ToolsIcon1.png"
+#define BAG_ItemIconShowRevHintShort	"Shop/ToolsIcon4.png"
+#define BAG_ItemIconShowRevHint	"Shop/ToolsIcon3.png"
 
 // discard
 #define GAMETOOL_Time0			"GameBlock/Tool_time0.png"

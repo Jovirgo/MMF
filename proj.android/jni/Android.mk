@@ -13,10 +13,12 @@ LOCAL_MODULE_FILENAME := libcocos2dcpp
 LOCAL_SRC_FILES := hellocpp/main.cpp \
                    ../../Classes/AnimationReaderForCocos2d.cpp \
                    ../../Classes/AppDelegate.cpp \
+				   ../../Classes/BagScene.cpp \
                    ../../Classes/CsvFileForCocos2d.cpp \
                    ../../Classes/GameBlock.cpp \
                    ../../Classes/GameBlocksCountManager.cpp \
-                   ../../Classes/GameBlocksManager.cpp \
+                   ../../Classes/GameBlockManager.cpp \
+                   ../../Classes/GameBlockManagerDerivation.cpp \
                    ../../Classes/GameData.cpp \
                    ../../Classes/GameLevelMapScene.cpp \
                    ../../Classes/GamePlayScene.cpp \

@@ -27,34 +27,33 @@ bool TitleScene::init(void)
     rootNode->setPosition(Vec2(winSize.width /2,
                                winSize.height/2));
     
-    // replace the old menu with the new one:
-    auto oldMenu = rootNode->getChildByName("MenuNode");
-    rootNode->removeChild(oldMenu);
-    
-    auto newMenu = Menu::create();
-    rootNode->addChild(newMenu);
-    newMenu->setPosition(oldMenu->getPosition());
-    
+    // init menu
     const char* szFileNameOfBtnTex[] = {
 		TITLE_BtnPlay,
         TITLE_BtnRank,
         TITLE_BtnStats,
         TITLE_BtnSettings
     };
+
+    auto oldMenu = rootNode->getChildByName("MenuNode");
+    auto newMenu = Menu::create();
+    newMenu->setPosition(oldMenu->getPosition());
+    
     
     for (int i = 0; i != oldMenu->getChildrenCount(); ++i)
     {
-        auto newMenuItem = GameZoomMenuItem::create(Sprite::create(szFileNameOfBtnTex[i]),
-                                                    Sprite::create(szFileNameOfBtnTex[i]),
-                                                    Sprite::create(szFileNameOfBtnTex[i]),
-                                                    CC_CALLBACK_1(TitleScene::menuCallback, this));
-        newMenu->addChild(newMenuItem, 0, i);
-        
-        auto oldMenuItem = oldMenu->getChildByTag(i);
-        newMenuItem->setPosition(oldMenuItem->getPosition());
+        auto oldItem = oldMenu->getChildByTag(i);
+        auto newItem = GameZoomMenuItem::create(Sprite::create(szFileNameOfBtnTex[i]),
+                                                Sprite::create(szFileNameOfBtnTex[i]),
+                                                Sprite::create(szFileNameOfBtnTex[i]),
+                                                CC_CALLBACK_1(TitleScene::menuCallback, this));
+        newItem->setPosition(oldItem->getPosition());
+		newItem->setTag(i);
+        newMenu->addChild(newItem);
     }
-    
-    // replace end
+
+    rootNode->removeChild(oldMenu);
+    rootNode->addChild(newMenu, oldMenu->getZOrder(), oldMenu->getName());
     
     return bRet;
 }

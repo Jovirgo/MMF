@@ -7,7 +7,7 @@
 //
 
 #include "GameBlocksCountManager.h"
-#include "GameBlocksManager.h"
+#include "GameBlockManager.h"
 
 USING_NS_CC;
 
@@ -25,7 +25,7 @@ GameBlocksCountManager* GameBlocksCountManager::getInstance()
 
 int GameBlocksCountManager::getNewBlockType()
 {
-	int type = TYPE_NULL;
+	int type = GB_NULL;
 
     if (_priorityBlockTypeQueue.empty())
     {
@@ -43,37 +43,83 @@ int GameBlocksCountManager::getNewBlockType()
 
 int GameBlocksCountManager::getNewCardTypeAtRandom()
 {
-	CCASSERT(_typeLaunchedCount != 0, "");
+	CCASSERT(_typeLaunchedCount > 1, "");
 
-    int random = int(CCRANDOM_0_1()*_typeLaunchedCount) % _typeLaunchedCount;
+	// index of launched type 
+    int n = int(CCRANDOM_0_1()*_typeLaunchedCount) % _typeLaunchedCount;
 
-	for (int type = CARD_1; type != TYPE_TOTAL; ++type)
+	for (int type = GB_Rvs1; type != GB_TypeCount; ++type)
 	{
 		if (_isTypeLaunched[type])
 		{
-			if (random-- == 0)
+			if ((n--) == 0)
 			{
 				return type;
 			}
 		}
 	}
 
-	return TYPE_NULL;
+	return GB_NULL;
+}
+
+void GameBlocksCountManager::setBlockTypeWithRowsAndColumns(int rows, int cols)
+{
+	std::vector<int> blockTypes;
+
+	int totalCount = rows * cols;
+
+	int typeCount = 0;
+	int type = GB_NULL;
+
+	while (true)
+	{
+		for (int i = 0; i != totalCount/2; ++i)
+		{
+			int newType = getNewCardTypeAtRandom();
+
+			if (newType != type)
+			{
+				++typeCount;
+				type = newType;
+			}
+
+			blockTypes.push_back(type);
+			blockTypes.push_back(type);
+		}
+
+		if (typeCount < 2)	// at least 2 types
+		{
+			typeCount = 0;
+			blockTypes.clear();
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	std::random_shuffle(blockTypes.begin(), blockTypes.end());
+
+	for (auto iter = blockTypes.begin() ;iter != blockTypes.end() ;++iter)
+	{
+		addBlockTypeToPriorityQueue(*iter);
+	}
 }
 
 void GameBlocksCountManager::increaseTotalCountWithType(int type)
 {
-    CCASSERT(type >= TYPE_NULL && type < TYPE_TOTAL, "");
+    CCASSERT(type >= GB_NULL && type < GB_TypeCount, "");
     
     ++_totalBlocksCount[type];
 }
 
 void GameBlocksCountManager::increaseClearCountWithType(int type)
 {
-    CCASSERT(type >= TYPE_NULL && type < TYPE_TOTAL, "");
+    CCASSERT(type >= GB_NULL && type < GB_TypeCount, "");
     
     ++_clearBlocksCount[type];
 
+	// Will be moved
 	if (getTotalCountWithRemaining() == 0)
 	{
 		EventCustom event( EVENT_BeginNextRound );
@@ -85,7 +131,7 @@ void GameBlocksCountManager::resetBlocksCount()
 {
 	_typeLaunchedCount = 0;
 
-    for (int type = CARD_1; type != TYPE_TOTAL; ++type)
+    for (int type = GB_Rvs1; type != GB_TypeCount; ++type)
     {
         _totalBlocksCount[type] = 0;
         _clearBlocksCount[type] = 0;
@@ -98,7 +144,7 @@ int GameBlocksCountManager::getTotalCountWithRemaining()
 {
 	int totalRemaining = 0;
 
-	for (int type = CARD_1; type != TYPE_TOTAL; ++type)
+	for (int type = GB_Rvs1; type != GB_TypeCount; ++type)
 	{
 		totalRemaining += getRemainingCountWithType(type);
 	}

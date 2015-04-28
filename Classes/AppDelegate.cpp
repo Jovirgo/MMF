@@ -55,7 +55,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     
     float rate = 0;
     
-    if (dvcmp > dfcmp)
+    //if (dvcmp > dfcmp)
     {
         rate = dfSize.height / dvSize.height;
     }

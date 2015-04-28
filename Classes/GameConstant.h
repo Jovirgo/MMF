@@ -20,11 +20,14 @@ const cocos2d::Size MAP_PlateSize(720, 1280);
 /**
 * Gameplay
 */
-const float	GAMEPLAY_BlockWidth  = 100.f;
-const float GAMEPLAY_BlockHeight = 100.f;
+const float	GAMEPLAY_BlockWidth		= 100.f;
+const float GAMEPLAY_BlockHeight	= 100.f;
+const float GAMEPLAY_BlockFlipDt	= 0.1f;
+const float GAMEPLAY_BlockFallingSpeed	= 850.f;	// pixel  per second
+const float GAMEPLAY_BlockRevHintSpeed	= 500.f;	// pecent per second
 const int   GAMEPLAY_BlocksRowMax = 6;
 const int   GAMEPLAY_BlocksColMax = 6;
-const int   GAMEPLAY_BaseScore = 10;
+const int   GAMEPLAY_BaseScore = 5;
 const int	GAMEPLAY_FeverStep = 7;
 const float	GAMEPLAY_FeverDuration = 5.f;
 
@@ -47,7 +50,7 @@ const int	SHOP_ToolsPrice[9] = {
 const int SHOP_ToolsQuantity[9] = {
 	1,		1,		1,	// tools
 	1,		1,		1,	// tools
-	1,		1000,	50000	// tool, coin, coin
+	1,		500,	1000	// tool, coin, coin
 };
 
 

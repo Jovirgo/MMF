@@ -10,9 +10,12 @@
 #define EVENT_IncreaseCoins			"IncreaseCoins"
 #define EVENT_DecreaseCoinsSuccess	"DecreaseCoinsSuccess"
 #define EVENT_DecreaseCoinsFailed	"DecreaseCoinsFailed"
-#define EVENT_IncreaseDiamonds		"IncreaseDiamonds"
+#define EVENT_IncreaseDiamonds			"IncreaseDiamonds"
 #define EVENT_DecreaseDiamondsSuccess	"DecreaseDiamondsSuccess"
 #define EVENT_DecreaseDiamondsFailed	"DecreaseDiamondsFailed"
+#define EVENT_IncreaseTools			"IncreaseTool"
+#define EVENT_DecreaseToolsSuccess	"DecreaseToolSuccess"
+#define EVENT_DecreaseToolsFailed	"DecreaseToolFailed"
 
 class PlayerStats	// Powers, Coins and Diamonds
 {
@@ -76,6 +79,30 @@ public:
 private:
 	int _diamonds;
 
+
+public:
+	/**
+	* Tools
+	*/
+	enum Tool{
+		MoreTime = 0,
+		AutoMatch,
+		ShowRevHint,
+		ShowRevHintShort,
+		TotalTypes
+	};
+
+	int getToolCountWithType(int type);
+
+	void increaseToolCountWithType(int type, int delta);
+	bool decreaseToolCountWithType(int type, int delta);
+
+	void saveToolStatsWithType(int type);
+	void saveToolStats();
+	void loadToolStats();
+
+private:
+	int _toolCount[ TotalTypes ];
 
 public:
 	static PlayerStats* getInstance();

@@ -10,7 +10,7 @@
 #define __NewFlipop__GamePlayScene__
 
 #include "cocos2d.h"
-#include "GameBlocksManager.h"
+#include "GameBlockManagerDerivation.h"
 #include "ui/CocosGUI.h"
 #include "NumberCountingLabel.h"
 
@@ -34,6 +34,18 @@ struct GamePlayInfo
 	int bonusTool[3];
 };
 
+class PlayTypeBase
+{
+};
+
+class MatchPlayType : public PlayTypeBase
+{
+};
+
+class SinglePlayType : public PlayTypeBase
+{
+};
+
 class GamePlayScene: public cocos2d::Scene
 {
 public:
@@ -45,13 +57,20 @@ public:
 	void initCocostudioRootNode();
 	void initMenu();
 
+	void menuItemCallback(cocos2d::Ref* sender);
+
+	virtual void onEnter();
+	virtual void onExit();
+
 private:
     cocos2d::Node* _rootNode;
     
 private:
+	void adjustFinishEvent(cocos2d::EventCustom* event);
+	void adjustReadyEvent(cocos2d::EventCustom* event);
 
-    void adjustFeverIncreaseEvent(cocos2d::EventCustom* event);
-    void adjustFeverDecreaseEvent(cocos2d::EventCustom* event);
+    void adjustPairCorrect(cocos2d::EventCustom* event);
+    void adjustPairIncorrect(cocos2d::EventCustom* event);
 
     void adjustPutScoreEvent(cocos2d::EventCustom* event);
     void adjustGetScoreEvent(cocos2d::EventCustom* event);
@@ -63,7 +82,7 @@ private:
 	void enableFeverMode();
 	void disableFeverMode();
     
-    GameBlocksManager* _blocksManager;
+    GameBlockManagerDerivation* _blockManager;
 
     int     _feverStep;
     float   _feverTimer;
@@ -86,7 +105,7 @@ private:
 private:
     GamePlayScene()
     : _rootNode(nullptr)
-    , _blocksManager(nullptr)
+    , _blockManager(nullptr)
     , _feverStep(0)
     , _feverTimer(GAMEPLAY_FeverDuration)
     , _feverBar(nullptr)

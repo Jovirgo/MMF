@@ -36,11 +36,34 @@ void ShopScene::initTopBar()
 {
 	auto topBar = _rootNode->getChildByName("StatsBar");
 
-	_coinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
-	_coinsText->retain();
+	
+	// coins
+	auto oldCoinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
+    oldCoinsText->removeFromParent();
+    
+    _coinsText = NumberCountingLabel::create();
+    _coinsText->retain();
+    _coinsText->setPosition(oldCoinsText->getPosition());
+    _coinsText->setAnchorPoint(oldCoinsText->getAnchorPoint());
+	_coinsText->setScale(oldCoinsText->getScale());
+	_coinsText->setFntFile("fonts/Stats.fnt");
+    _coinsText->setCountingDuration(0.2f);
+	_coinsText->setScale(oldCoinsText->getScale());
+    topBar->addChild(_coinsText, oldCoinsText->getZOrder(), oldCoinsText->getName());
 
-	_diamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
-	_diamondsText->retain();
+	
+	// diamonds
+	auto oldDiamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
+    oldDiamondsText->removeFromParent();
+    
+    _diamondsText = NumberCountingLabel::create();
+    _diamondsText->retain();
+    _diamondsText->setPosition(oldDiamondsText->getPosition());
+    _diamondsText->setAnchorPoint(oldDiamondsText->getAnchorPoint());
+	_diamondsText->setScale(oldDiamondsText->getScale());
+	_diamondsText->setFntFile("fonts/Stats.fnt");
+    _diamondsText->setCountingDuration(0.2f);
+    topBar->addChild(_diamondsText, oldDiamondsText->getZOrder(), oldDiamondsText->getName());
 
 	_powersText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("PowersText"));
 	_powersText->retain();
@@ -63,7 +86,6 @@ void ShopScene::initSwitchMenu()
 		SHOP_DiamondsItemDisabled,
 	};
 
-	// init menu
 	auto oldMenu = _rootNode->getChildByName("Menu");
 	auto newMenu = Menu::create();
 	newMenu->setPosition(oldMenu->getPosition());
@@ -86,10 +108,6 @@ void ShopScene::initSwitchMenu()
 
 void ShopScene::initShop()
 {
-	initGiftsShop();
-	initToolsShop();
-	initDiamondsShop();
-
 	// init shop
 	auto shop = _rootNode->getChildByName("Shop");
 	
@@ -97,6 +115,13 @@ void ShopScene::initShop()
 	nodeHeight[0] = 600.f;
 	nodeHeight[1] = 780.f;
 	nodeHeight[2] = 660.f;
+
+	_shopNode[0] = createGiftsShopNode();
+	_shopNode[0]->retain();
+	_shopNode[1] = createToolsShopNode();
+	_shopNode[1]->retain();
+	_shopNode[2] = createDiamondsShopNode();
+	_shopNode[2]->retain();
 
 	for (int i = 0; i != 3; ++i)
 	{
@@ -106,12 +131,10 @@ void ShopScene::initShop()
 
 		// inner content size
 		auto size = scrollView->getContentSize();
-
 		if (size.height < nodeHeight[i])
 		{
 			size.height = nodeHeight[i];
 		}
-
 		scrollView->setInnerContainerSize(size);
 
 		// shopNode position
@@ -119,40 +142,40 @@ void ShopScene::initShop()
 	}
 }
 
-void ShopScene::initGiftsShop()
+Node* ShopScene::createGiftsShopNode()
 {
-	_shopNode[0] = CSLoader::createNode( SHOP_GiftsCsb ); 
-	_shopNode[0]->retain();
+	return CSLoader::createNode( SHOP_GiftsCsb );
 }
 
-void ShopScene::initToolsShop()
+Node* ShopScene::createToolsShopNode()
 {
-	_shopNode[1] = CSLoader::createNode( SHOP_ToolsCsb ); 
-	_shopNode[1]->retain();
+	auto shopNode = CSLoader::createNode( SHOP_ToolsCsb );
 
 	for (int i = 0; i != 9; ++i)
 	{
 		char szChildName[20];
 		snprintf(szChildName, 20, "BtnPay%d", i);
 
-		auto button = dynamic_cast<ui::Button*>( _shopNode[1]->getChildByName(szChildName) );
+		auto button = dynamic_cast<ui::Button*>( shopNode->getChildByName(szChildName) );
 		button->setSwallowTouches(false);
 		button->addTouchEventListener( CC_CALLBACK_2(ShopScene::buyItemCallback, this));
 	}
 
+	return shopNode;
 }
 
-void ShopScene::initDiamondsShop()
+Node* ShopScene::createDiamondsShopNode()
 {
-	_shopNode[2] = CSLoader::createNode( SHOP_DiamondsCsb ); 
-	_shopNode[2]->retain();
+	auto shopNode = CSLoader::createNode( SHOP_DiamondsCsb );
 
 	for (int i = 0; i != 3; ++i)
 	{
-		auto button = dynamic_cast<ui::Button*>( _shopNode[2]->getChildByTag(i) );
+		auto button = dynamic_cast<ui::Button*>( shopNode->getChildByTag(i) );
 		button->setSwallowTouches(false);
 		button->addTouchEventListener( CC_CALLBACK_2(ShopScene::buyItemCallback, this));
 	}
+
+	return shopNode;
 }
 
 void ShopScene::onEnter()
@@ -177,17 +200,33 @@ void ShopScene::onEnter()
 		break;
 	}
 
+	// stats
+	auto stats = PlayerStats::getInstance();
+
 	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
+	snprintf(szText, 20, "%d", stats->getCoins());
 	_coinsText->setString(szText);
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
+	snprintf(szText, 20, "%d", stats->getDiamonds());
 	_diamondsText->setString(szText);
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getPowersByCalculate());
+	snprintf(szText, 20, "%d", stats->getPowersByCalculate());
 	_powersText->setString(szText);
+
+	if (stats->isFullPower())
+	{
+		_timerText->setVisible(false);
+	}
+	else
+	{
+		int duration = stats->getRemainingChargingDur();
+		int min = duration / 60;
+		int sec = duration % 60;
+		snprintf(szText, 10, "%d:%02d", min, sec);
+		_timerText->setString(szText);
+	}
 	
 	_eventDispatcher->addCustomEventListener(EVENT_IncreasePowers, CC_CALLBACK_1(ShopScene::adjustIncreasePowersEvent, this));
-	_eventDispatcher->addCustomEventListener(EVENT_DecreasePowersSuccess, CC_CALLBACK_1(ShopScene::adjustIncreasePowersEvent, this));
-	_eventDispatcher->addCustomEventListener(EVENT_IncreaseCoins, CC_CALLBACK_1(ShopScene::adjustDecreasePowersEvent, this));
+	_eventDispatcher->addCustomEventListener(EVENT_DecreasePowersSuccess, CC_CALLBACK_1(ShopScene::adjustDecreasePowersEvent, this));
+	_eventDispatcher->addCustomEventListener(EVENT_IncreaseCoins, CC_CALLBACK_1(ShopScene::adjustIncreaseCoinsEvent, this));
 	_eventDispatcher->addCustomEventListener(EVENT_DecreaseCoinsSuccess, CC_CALLBACK_1(ShopScene::adjustDecreaseCoinsEvent, this));
 	_eventDispatcher->addCustomEventListener(EVENT_IncreaseDiamonds, CC_CALLBACK_1(ShopScene::adjustIncreaseDiamondsEvent, this));
 	_eventDispatcher->addCustomEventListener(EVENT_DecreaseDiamondsSuccess, CC_CALLBACK_1(ShopScene::adjustDecreaseDiamondsEvent, this));
@@ -370,9 +409,17 @@ void ShopScene::buyToolsCallback(Ref* sender)
 	{
 		switch (tag)
 		{
-		case 0: case 1: case 2:
-		case 3: case 4: case 5:
-		case 6:
+		case 0: case 1:
+			playerStats->increaseToolCountWithType(PlayerStats::Tool::AutoMatch, SHOP_ToolsQuantity[tag]);
+			break;
+		case 2: 
+			playerStats->increaseToolCountWithType(PlayerStats::Tool::ShowRevHint, SHOP_ToolsQuantity[tag]);
+			break;
+		case 3: case 4:  
+			playerStats->increaseToolCountWithType(PlayerStats::Tool::MoreTime, SHOP_ToolsQuantity[tag]);
+			break;
+		case 5: case 6:
+			playerStats->increaseToolCountWithType(PlayerStats::Tool::ShowRevHintShort, SHOP_ToolsQuantity[tag]);
 			break;
 		case 7: case 8:
 			playerStats->increaseCoins( SHOP_ToolsQuantity[tag] ); 
@@ -391,34 +438,26 @@ void ShopScene::buyDiamondsCallback(Ref* sender)
 
 void ShopScene::adjustIncreaseCoinsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
-
-	_coinsText->setString(szText);
+	_coinsText->setIsIncreased(true);
+	_coinsText->setGoalNumber( PlayerStats::getInstance()->getCoins());
 }
 
 void ShopScene::adjustDecreaseCoinsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
-
-	_coinsText->setString(szText);
+	_coinsText->setIsIncreased(false);
+	_coinsText->setGoalNumber( PlayerStats::getInstance()->getCoins());
 }
 
 void ShopScene::adjustIncreaseDiamondsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
-
-	_diamondsText->setString(szText);
+	_diamondsText->setIsIncreased(true);
+	_diamondsText->setGoalNumber( PlayerStats::getInstance()->getDiamonds());
 }
 
 void ShopScene::adjustDecreaseDiamondsEvent(EventCustom* event)
 {
-	char szText[20];
-	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
-
-	_diamondsText->setString(szText);
+	_diamondsText->setIsIncreased(false);
+	_diamondsText->setGoalNumber( PlayerStats::getInstance()->getDiamonds());
 }
 
 void ShopScene::adjustIncreasePowersEvent(EventCustom* event)

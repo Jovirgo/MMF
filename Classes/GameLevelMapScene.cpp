@@ -14,6 +14,7 @@
 #include "GameScoreMap.h"
 #include "GameSettings.h"
 #include "ShopScene.h"
+#include "BagScene.h"
 
 USING_NS_CC;
 
@@ -28,40 +29,59 @@ bool GameLevelMapScene::init()
 
     Size winSize = Director::getInstance()->getWinSize();
     _rootNode->setPosition(Vec2(winSize.width/2, 0));
-    
-    for (int i = 0; i != 10; ++i)
-    {
-        pushPlateToMapWithSize(CSLoader::createNode( MAP_PlateCsb ), MAP_PlateSize);
-    }
-    
-	auto scrollView = dynamic_cast<ui::ScrollView*>(_rootNode->getChildByName("ScrollView"));
 
-	Size scrollViewSize = scrollView->getContentSize();
-	scrollViewSize.height = winSize.height;
-	scrollView->setContentSize( scrollViewSize );
-	scrollView->jumpToBottom();
-	
 	initTopBar();
 
+	// init bottom bar
 	auto btnShop = dynamic_cast<ui::Button*>(_rootNode->getChildByName("BtnShop"));
 	btnShop->addClickEventListener([](Ref*){
 		Director::getInstance()->pushScene( ShopScene::create() );
 	});
+	
+	auto btnBag = dynamic_cast<ui::Button*>(_rootNode->getChildByName("BtnBag"));
+	btnBag->addClickEventListener([](Ref*){
+		Director::getInstance()->pushScene( BagScene::create() );
+	});
+
+	//
+	initScrollMap();
 
 	GameSettings::getInstance()->playMusic( BgMusicMp3 );
-    
     return bRet;
 }
 
 void GameLevelMapScene::initTopBar()
 {
 	auto topBar = _rootNode->getChildByName("StatsBar");
+	
+	// coins
+	auto oldCoinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
+    oldCoinsText->removeFromParent();
+    
+    _coinsText = NumberCountingLabel::create();
+    _coinsText->retain();
+    _coinsText->setPosition(oldCoinsText->getPosition());
+    _coinsText->setAnchorPoint(oldCoinsText->getAnchorPoint());
+	_coinsText->setScale(oldCoinsText->getScale());
+	_coinsText->setFntFile("fonts/Stats.fnt");
+    _coinsText->setCountingDuration(0.2f);
+	_coinsText->setScale(oldCoinsText->getScale());
+    topBar->addChild(_coinsText, oldCoinsText->getZOrder(), oldCoinsText->getName());
 
-	_coinsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("CoinsText"));
-	_coinsText->retain();
+	
+	// diamonds
+	auto oldDiamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
+    oldDiamondsText->removeFromParent();
+    
+    _diamondsText = NumberCountingLabel::create();
+    _diamondsText->retain();
+    _diamondsText->setPosition(oldDiamondsText->getPosition());
+    _diamondsText->setAnchorPoint(oldDiamondsText->getAnchorPoint());
+	_diamondsText->setScale(oldDiamondsText->getScale());
+	_diamondsText->setFntFile("fonts/Stats.fnt");
+    _diamondsText->setCountingDuration(0.2f);
+    topBar->addChild(_diamondsText, oldDiamondsText->getZOrder(), oldDiamondsText->getName());
 
-	_diamondsText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("DiamondsText"));
-	_diamondsText->retain();
 
 	_powersText = dynamic_cast<ui::TextBMFont*>(topBar->getChildByName("PowersText"));
 	_powersText->retain();
@@ -70,23 +90,34 @@ void GameLevelMapScene::initTopBar()
 	_timerText->retain();
 }
 
+void GameLevelMapScene::initScrollMap()
+{
+	Size winSize = Director::getInstance()->getWinSize();
+	
+	// 10 map plates
+    for (int i = 0; i != 10; ++i)
+    {
+        pushPlateToMapWithSize( CSLoader::createNode( MAP_PlateCsb ), MAP_PlateSize);
+    }
+    
+	auto scrollView = dynamic_cast<ui::ScrollView*>(_rootNode->getChildByName("ScrollView"));
+
+	// after pushPlateToMapWithSize
+	Size scrollViewSize = scrollView->getContentSize();
+	scrollViewSize.height = winSize.height;
+	scrollView->setContentSize( scrollViewSize );
+	scrollView->jumpToBottom();
+}
+
 void GameLevelMapScene::onEnter()
 {
 	Scene::onEnter();
 
 	auto scrollView = dynamic_cast<ui::ScrollView*>(_rootNode->getChildByName("ScrollView"));
 
-	// update high score
-	auto gData = GameData::getInstance();
-
-//	if (_levelScoreMap[ gData->getLevelId() ] < gData->getScore())
-//	{
-//		_levelScoreMap[ gData->getLevelId() ] = gData->getScore();
-//	}
-
 	auto scoreMap = GameScoreMap::getInstance();
 
-	// update level btn stats
+	// update stats of level btn 
 	for (auto iter = _levelBtns.begin(); iter != _levelBtns.end(); ++iter)
     {
 		int levelId = (*iter)->getTag();
@@ -104,8 +135,7 @@ void GameLevelMapScene::onEnter()
 			int scoreGoal = 0;
 			sscanf( _levelInfoTable.getData(levelId-1, GameLevelInfoData::Field::ScoreGoal1), "%d", &scoreGoal);
 
-//			if (_levelScoreMap[levelId-1] < scoreGoal)
-			if (scoreMap->getScoreWithGameLevel(levelId-1) < scoreGoal)
+			if (scoreGoal == 0 || scoreMap->getScoreWithGameLevel(levelId-1) < scoreGoal)
 			{
 				btn->setVisible(false);
 				continue;
@@ -124,7 +154,6 @@ void GameLevelMapScene::onEnter()
 			int scoreGoal = 0;
 			sscanf( _levelInfoTable.getData(levelId, i+GameLevelInfoData::Field::ScoreGoal1), "%d", &scoreGoal);
 
-//			if (scoreGoal <= _levelScoreMap[levelId])
 			if (scoreGoal <= scoreMap->getScoreWithGameLevel(levelId))
 			{
 				star->setTexture( TextureCache::getInstance()->addImage( MAP_StarFull ));
@@ -139,7 +168,7 @@ void GameLevelMapScene::onEnter()
 	// Stats bar
 	char szText[20];
 
-	snprintf(szText, 20, "%d",PlayerStats::getInstance()->getCoins());
+	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getCoins());
 	_coinsText->setString(szText);
 	snprintf(szText, 20, "%d", PlayerStats::getInstance()->getDiamonds());
 	_diamondsText->setString(szText);
@@ -171,8 +200,8 @@ void GameLevelMapScene::onExit()
 
 void GameLevelMapScene::pushPlateToMapWithSize(Node* plate, const Size& plateSize)
 {
-    auto scrollView = dynamic_cast<ui::ScrollView*>(_rootNode->getChildByName("ScrollView"));
-    scrollView->addChild(plate);
+    auto scrollView = dynamic_cast<ui::ScrollView*>( _rootNode->getChildByName("ScrollView"));
+    scrollView->addChild(plate, -_levelCount);
     
     
     // update _innerHeight
@@ -188,9 +217,9 @@ void GameLevelMapScene::pushPlateToMapWithSize(Node* plate, const Size& plateSiz
         innerSize.height = _innerHeight;
     }
     scrollView->setInnerContainerSize(innerSize);
+
     
-    
-    // initial level button
+    // initial unlock ...
     auto levels = plate->getChildByName("Levels");
 
     for (auto iter = levels->getChildren().begin(); iter != levels->getChildren().end(); ++iter)
@@ -209,7 +238,7 @@ void GameLevelMapScene::pushPlateToMapWithSize(Node* plate, const Size& plateSiz
 		_levelBtns.pushBack(button);
     }
 
-	// initial locked level
+	// initial locked number text
 	auto lockedLevels = plate->getChildByName("LockedLevels");
 
 	for (auto iter = lockedLevels->getChildren().begin(); iter != lockedLevels->getChildren().end(); ++iter)
@@ -235,12 +264,12 @@ void GameLevelMapScene::goToGamePlaySceneWithLevelId(int levelId)
 		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::Cols), "%d", &info.cols);
 		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::Time), "%d", &info.time);
 
-		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::BonusCoin), "%d", &info.bonusCoin);
-
 		for (int i = 0; i != 5; ++i)
 		{
 			sscanf(_levelInfoTable.getData(levelId, i+GameLevelInfoData::Field::Color1), "%d", info.color+i);
 		}
+		
+		sscanf(_levelInfoTable.getData(levelId, GameLevelInfoData::Field::BonusCoin), "%d", &info.bonusCoin);
 
 		for (int i = 0; i != 3; ++i)
 		{
@@ -248,8 +277,7 @@ void GameLevelMapScene::goToGamePlaySceneWithLevelId(int levelId)
 			sscanf(_levelInfoTable.getData(levelId, i+GameLevelInfoData::Field::BonusTool1), "%d", info.bonusTool+i);
 		}
 
-		auto scene = ReadyScene::create(info);
-		Director::getInstance()->pushScene(scene);
+		Director::getInstance()->pushScene( ReadyScene::create(info) );
 	}
 	else
 	{
@@ -272,7 +300,6 @@ void GameLevelMapScene::levelItemCallback(Ref* sender, ui::Widget::TouchEventTyp
 	case ui::Widget::TouchEventType::MOVED:
 		{
 			auto pos = parent->convertToWorldSpace( button->getPosition());
-
 			if (pos.distance(_touchBeganPos) > TOUCH_Sensitivity)
 			{
 				button->setHighlighted(false);
